@@ -108,7 +108,10 @@ Item {
     property alias caption: captionText.text
     property alias value: valueText.text
     property string unit: ""
-    spacing: Math.round(2 * root.hudScale)
+    // Negative: the caption's line box already leaves air under the word, so
+    // closing it pulls the number up under its own label and buys the gaps
+    // above the stack and below it.
+    spacing: Math.round(-5 * root.hudScale)
 
     HudCaption { id: captionText }
 
@@ -288,7 +291,7 @@ Item {
 
       Column {
         x: header.x
-        y: Math.round(card.height * 0.22)
+        y: Math.round(card.height * 0.25)
         spacing: Math.round(10 * root.hudScale)
 
         StatBlock { caption: "Pressure"; value: "12.48"; unit: "PSI" }
