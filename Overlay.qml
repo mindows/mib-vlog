@@ -138,6 +138,33 @@ Item {
     }
   }
 
+  // The pair of hairlines running down the inside of the frame, each with a
+  // centering tick — the film's feed has them, and they read as the edge of a
+  // viewfinder rather than as another readout. They sit inside the frame but
+  // outside the text margin, so they never cross the HUD.
+  component EdgeGuide: Item {
+    id: guide
+    property bool fromRight: false
+
+    width: Math.max(1, Math.round(1 * root.hudScale))
+    y: Math.round(card.height * 0.12)
+    height: Math.round(card.height * 0.80)
+
+    Rectangle {
+      anchors.fill: parent
+      color: Qt.rgba(1, 1, 1, 0.45)
+    }
+
+    Rectangle {
+      y: Math.round(parent.height * 0.55)
+      // The tick points inward, away from the nearer frame edge.
+      x: guide.fromRight ? guide.width - width : 0
+      width: Math.round(12 * root.hudScale)
+      height: Math.max(1, Math.round(1 * root.hudScale))
+      color: Qt.rgba(1, 1, 1, 0.45)
+    }
+  }
+
   // A boxed cell. The header's sol counter is one cell holding both words, so
   // "SOL 19" reads as a single plate rather than two adjacent chips.
   component HudCell: Rectangle {
@@ -357,6 +384,15 @@ Item {
           text: "Standby"
           opacity: 0.7
         }
+      }
+
+      EdgeGuide {
+        x: Math.round(17 * root.hudScale)
+      }
+
+      EdgeGuide {
+        fromRight: true
+        x: card.width - Math.round(17 * root.hudScale) - width
       }
 
       // A hairline frame, to sell the "this is a recording feed" look.
