@@ -138,11 +138,12 @@ Item {
     }
   }
 
-  // A boxed cell, as used by the SOL counter in the header.
+  // A boxed cell. The header's sol counter is one cell holding both words, so
+  // "SOL 19" reads as a single plate rather than two adjacent chips.
   component HudCell: Rectangle {
     property alias text: cellText.text
     color: Qt.rgba(1, 1, 1, 0.14)
-    implicitWidth: cellText.implicitWidth + Math.round(18 * root.hudScale)
+    implicitWidth: cellText.implicitWidth + Math.round(22 * root.hudScale)
     implicitHeight: Math.round(28 * root.hudScale)
 
     Text {
@@ -151,7 +152,7 @@ Item {
       color: root.hud
       font.family: root.hudFont
       font.pixelSize: Math.round(18 * root.hudScale)
-      font.letterSpacing: Math.round(1.5 * root.hudScale)
+      font.letterSpacing: Math.round(2.5 * root.hudScale)
       font.capitalization: Font.AllUppercase
     }
   }
@@ -255,11 +256,7 @@ Item {
           font.pixelSize: Math.round(15 * root.hudScale)
         }
 
-        Row {
-          spacing: Math.round(6 * root.hudScale)
-          HudCell { text: "Sol" }
-          HudCell { text: "19" }
-        }
+        HudCell { text: "Sol 19" }
       }
 
       // ------------------------------------------- environment stack (left)
