@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "mib-vlog",
+  "name": "MIB Vlog",
+  "version": "0.1.0",
+  "author": "min",
+  "license": "MIT",
+  "description": "A record button on the bar that opens a Mars-mission style vlog panel: the front camera live in the background under a translucent mission-status HUD. Click the panel to close it.",
+  "kinds": ["bar-widget", "overlay"],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml",
+    "overlay": "Overlay.qml"
+  },
+  "barWidget": {
+    "displayName": "MIB Vlog",
+    "description": "Red record button that opens the vlog camera panel.",
+    "category": "Media",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}
