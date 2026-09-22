@@ -78,11 +78,11 @@ Item {
 
   // ----------------------------------------------------------- HUD pieces
 
-  // The card is a fixed 500x300 plaque, but every HUD size is still expressed
+  // The card is a fixed 500x250 plaque, but every HUD size is still expressed
   // against a 720px-wide reference frame, so shrinking the card on a narrow
   // screen shrinks the HUD with it instead of overflowing it.
   readonly property real cardWidth: 500
-  readonly property real cardHeight: 300
+  readonly property real cardHeight: 250
   readonly property real hudScale: card.width / 720
 
   component HudCaption: Text {
@@ -288,8 +288,8 @@ Item {
 
       Column {
         x: header.x
-        y: Math.round(card.height * 0.26)
-        spacing: Math.round(14 * root.hudScale)
+        y: Math.round(card.height * 0.22)
+        spacing: Math.round(10 * root.hudScale)
 
         StatBlock { caption: "Pressure"; value: "12.48"; unit: "PSI" }
         StatBlock { caption: "Oxygen"; value: "20.79"; unit: "%" }
@@ -326,8 +326,8 @@ Item {
       Column {
         id: footer
         x: header.x
-        anchors { bottom: parent.bottom; bottomMargin: Math.round(26 * root.hudScale) }
-        spacing: Math.round(5 * root.hudScale)
+        anchors { bottom: parent.bottom; bottomMargin: Math.round(20 * root.hudScale) }
+        spacing: Math.round(4 * root.hudScale)
 
         Row {
           spacing: Math.round(9 * root.hudScale)
