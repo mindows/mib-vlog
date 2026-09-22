@@ -147,8 +147,6 @@ Item {
     property bool fromRight: false
 
     width: Math.max(1, Math.round(1 * root.hudScale))
-    y: Math.round(card.height * 0.12)
-    height: Math.round(card.height * 0.80)
 
     Rectangle {
       anchors.fill: parent
@@ -326,6 +324,7 @@ Item {
       // ------------------------------------------------------ footer (left)
 
       Column {
+        id: footer
         x: header.x
         anchors { bottom: parent.bottom; bottomMargin: Math.round(26 * root.hudScale) }
         spacing: Math.round(5 * root.hudScale)
@@ -386,13 +385,19 @@ Item {
         }
       }
 
+      // Both rules run the full height of the HUD: from the top of the first
+      // line of text to the bottom of the last.
       EdgeGuide {
         x: Math.round(17 * root.hudScale)
+        y: header.y
+        height: footer.y + footer.height - header.y
       }
 
       EdgeGuide {
         fromRight: true
         x: card.width - Math.round(17 * root.hudScale) - width
+        y: header.y
+        height: footer.y + footer.height - header.y
       }
 
       // A hairline frame, to sell the "this is a recording feed" look.
