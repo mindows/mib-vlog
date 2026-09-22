@@ -8,7 +8,7 @@ under a translucent mission-status HUD.
 
 - **Bar widget** — a breathing red record dot, placeable in the `left`,
   `center`, or `right` section of the bar. Clicking it toggles the panel.
-- **Overlay** — a fullscreen layer holding one 16:9 card. The front camera
+- **Overlay** — a 500x300 card at the top center of the screen. The front camera
   fills the card; the HUD (MISSION DAY / SOL 19, the pressure, oxygen, and
   temperature stack, LOG ENTRY, HAB > BUNKS) is drawn over it.
 - **Click anywhere on the panel to close it.** `Esc` and `q` close it too.

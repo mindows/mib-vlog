@@ -78,16 +78,19 @@ Item {
 
   // ----------------------------------------------------------- HUD pieces
 
-  // Every size is expressed against a 1280px-wide card so the HUD keeps its
-  // proportions on a 1080p laptop panel and on a 4K monitor alike.
-  readonly property real hudScale: card.width / 1280
+  // The card is a fixed 500x300 plaque, but every HUD size is still expressed
+  // against a 720px-wide reference frame, so shrinking the card on a narrow
+  // screen shrinks the HUD with it instead of overflowing it.
+  readonly property real cardWidth: 500
+  readonly property real cardHeight: 300
+  readonly property real hudScale: card.width / 720
 
   component HudCaption: Text {
     color: root.hud
     opacity: 0.72
     font.family: root.hudFont
-    font.pixelSize: Math.round(13 * root.hudScale)
-    font.letterSpacing: Math.round(2.4 * root.hudScale)
+    font.pixelSize: Math.round(12 * root.hudScale)
+    font.letterSpacing: Math.round(2 * root.hudScale)
     font.capitalization: Font.AllUppercase
   }
 
@@ -95,7 +98,7 @@ Item {
     color: root.hud
     opacity: 0.9
     font.family: root.hudFont
-    font.pixelSize: Math.round(30 * root.hudScale)
+    font.pixelSize: Math.round(24 * root.hudScale)
     font.letterSpacing: Math.round(1 * root.hudScale)
   }
 
@@ -110,13 +113,13 @@ Item {
     HudCaption { id: captionText }
 
     Row {
-      spacing: Math.round(14 * root.hudScale)
+      spacing: Math.round(10 * root.hudScale)
 
       HudReadout { id: valueText; anchors.verticalCenter: parent.verticalCenter }
 
       Rectangle {
         anchors.verticalCenter: parent.verticalCenter
-        width: Math.round(30 * root.hudScale)
+        width: Math.round(22 * root.hudScale)
         height: width
         radius: width / 2
         color: "transparent"
@@ -129,7 +132,7 @@ Item {
           color: root.hud
           opacity: 0.8
           font.family: root.hudFont
-          font.pixelSize: Math.round(12 * root.hudScale)
+          font.pixelSize: Math.round(10 * root.hudScale)
         }
       }
     }
@@ -139,16 +142,16 @@ Item {
   component HudCell: Rectangle {
     property alias text: cellText.text
     color: Qt.rgba(1, 1, 1, 0.14)
-    implicitWidth: cellText.implicitWidth + Math.round(26 * root.hudScale)
-    implicitHeight: Math.round(40 * root.hudScale)
+    implicitWidth: cellText.implicitWidth + Math.round(18 * root.hudScale)
+    implicitHeight: Math.round(28 * root.hudScale)
 
     Text {
       id: cellText
       anchors.centerIn: parent
       color: root.hud
       font.family: root.hudFont
-      font.pixelSize: Math.round(26 * root.hudScale)
-      font.letterSpacing: Math.round(2 * root.hudScale)
+      font.pixelSize: Math.round(18 * root.hudScale)
+      font.letterSpacing: Math.round(1.5 * root.hudScale)
       font.capitalization: Font.AllUppercase
     }
   }
@@ -187,12 +190,14 @@ Item {
       onClicked: root.dismiss()
     }
 
-    // The 16:9 recording card, as large as the screen allows with a margin.
+    // The recording card: a small plaque hanging from the top of the screen,
+    // clear of the bar.
     Item {
       id: card
-      anchors.centerIn: parent
-      width: Math.min(parent.width * 0.92, (parent.height * 0.92) * 16 / 9)
-      height: width * 9 / 16
+      anchors.horizontalCenter: parent.horizontalCenter
+      y: Math.round(40 * (width / root.cardWidth))
+      width: Math.min(root.cardWidth, parent.width - 40)
+      height: width * root.cardHeight / root.cardWidth
       clip: true
 
       Rectangle { anchors.fill: parent; color: "#101114" }
@@ -240,14 +245,14 @@ Item {
 
       Column {
         id: header
-        x: Math.round(40 * root.hudScale)
-        y: Math.round(28 * root.hudScale)
-        spacing: Math.round(8 * root.hudScale)
+        x: Math.round(26 * root.hudScale)
+        y: Math.round(16 * root.hudScale)
+        spacing: Math.round(6 * root.hudScale)
 
         HudCaption {
           text: "Mission Day"
           opacity: 0.85
-          font.pixelSize: Math.round(17 * root.hudScale)
+          font.pixelSize: Math.round(15 * root.hudScale)
         }
 
         Row {
@@ -261,8 +266,8 @@ Item {
 
       Column {
         x: header.x
-        y: Math.round(card.height * 0.30)
-        spacing: Math.round(20 * root.hudScale)
+        y: Math.round(card.height * 0.26)
+        spacing: Math.round(14 * root.hudScale)
 
         StatBlock { caption: "Pressure"; value: "12.48"; unit: "PSI" }
         StatBlock { caption: "Oxygen"; value: "20.79"; unit: "%" }
@@ -277,9 +282,9 @@ Item {
       // ----------------------------------------------------- header (right)
 
       Column {
-        anchors { right: parent.right; rightMargin: Math.round(40 * root.hudScale) }
-        y: Math.round(30 * root.hudScale)
-        spacing: Math.round(10 * root.hudScale)
+        anchors { right: parent.right; rightMargin: Math.round(26 * root.hudScale) }
+        y: Math.round(18 * root.hudScale)
+        spacing: Math.round(7 * root.hudScale)
 
         HudCaption {
           anchors.right: parent.right
@@ -298,17 +303,17 @@ Item {
 
       Column {
         x: header.x
-        anchors { bottom: parent.bottom; bottomMargin: Math.round(30 * root.hudScale) }
-        spacing: Math.round(8 * root.hudScale)
+        anchors { bottom: parent.bottom; bottomMargin: Math.round(26 * root.hudScale) }
+        spacing: Math.round(5 * root.hudScale)
 
         Row {
-          spacing: Math.round(12 * root.hudScale)
+          spacing: Math.round(9 * root.hudScale)
 
           Text {
             text: "HAB"
             color: root.hud
             font.family: root.hudFont
-            font.pixelSize: Math.round(38 * root.hudScale)
+            font.pixelSize: Math.round(28 * root.hudScale)
             font.bold: true
             font.letterSpacing: Math.round(2 * root.hudScale)
           }
@@ -318,15 +323,15 @@ Item {
             color: root.hud
             opacity: 0.85
             font.family: root.hudFont
-            font.pixelSize: Math.round(38 * root.hudScale)
-            font.letterSpacing: Math.round(6 * root.hudScale)
+            font.pixelSize: Math.round(28 * root.hudScale)
+            font.letterSpacing: Math.round(4 * root.hudScale)
           }
         }
 
         HudCaption {
           text: "Connected:0022213Ø2EWBVC-2-4002060-26-3"
           opacity: 0.45
-          font.pixelSize: Math.round(10 * root.hudScale)
+          font.pixelSize: Math.round(9 * root.hudScale)
         }
       }
 
@@ -335,15 +340,15 @@ Item {
       Row {
         anchors {
           right: parent.right
-          rightMargin: Math.round(40 * root.hudScale)
+          rightMargin: Math.round(26 * root.hudScale)
           bottom: parent.bottom
-          bottomMargin: Math.round(34 * root.hudScale)
+          bottomMargin: Math.round(22 * root.hudScale)
         }
-        spacing: Math.round(10 * root.hudScale)
+        spacing: Math.round(7 * root.hudScale)
 
         Rectangle {
           anchors.verticalCenter: parent.verticalCenter
-          width: Math.round(12 * root.hudScale)
+          width: Math.round(11 * root.hudScale)
           height: width
           radius: width / 2
           color: root.recordColor
