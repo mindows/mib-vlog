@@ -19,6 +19,9 @@ FocusScope {
 
   signal done()
 
+  // Row pitch, shared with the location dropdown that hangs below its row.
+  readonly property int rowHeight: Math.round(21 * view.hudScale)
+
   Keys.onEscapePressed: view.done()
 
   readonly property var rows: [
@@ -26,16 +29,21 @@ FocusScope {
     { key: "solLabel", label: "Sol", hint: "SOL" },
     { key: "launchDate", label: "Launch date", hint: "YYYY-MM-DD" },
     { key: "locationName", label: "Location", hint: "CITY, STATE, COUNTRY", search: true },
-    { key: "tempUnit", label: "Temp unit", choices: ["C", "F"] },
+    { key: "tempUnit", label: "Temp unit",
+      choices: [{ value: "C", text: "°C" }, { value: "F", text: "°F" }] },
     { key: "habLabel", label: "Hab", hint: "HAB" },
     { key: "locationLabel", label: "Room", hint: "BUNKS" },
     { key: "logLabel", label: "Log entry", hint: "LOG ENTRY > WATNEY" },
     { key: "timeLabel", label: "Time", hint: "TIME" },
-    { key: "outputDir", label: "Output folder", hint: "~/mib-vlogs" }
+    { key: "outputDir", label: "Output folder", hint: "~/mib-vlogs" },
+    { key: "noiseReduction", label: "Noise reduction",
+      choices: [{ value: "true", text: "On" }, { value: "false", text: "Off" }] }
   ]
 
   function commit(key, value) {
     if (key === "launchDate") view.store.setLaunchDate(value)
+    else if (key === "tempUnit") view.store.setTempUnit(value)
+    else if (key === "noiseReduction") view.store.setNoiseReduction(value === "true")
     else if (key === "outputDir") view.store.setOutputDir(value)
     else view.store.setLabel(key, value)
   }
@@ -106,7 +114,7 @@ FocusScope {
     x: title.x
     y: Math.round(42 * view.hudScale)
     width: parent.width - x * 2
-    spacing: Math.round(3 * view.hudScale)
+    spacing: Math.round(2 * view.hudScale)
 
     Repeater {
       model: view.rows
@@ -117,7 +125,7 @@ FocusScope {
         required property int index
 
         width: form.width
-        height: Math.round(24 * view.hudScale)
+        height: view.rowHeight
 
         Text {
           id: rowLabel
@@ -147,8 +155,9 @@ FocusScope {
 
           function step() {
             var options = row.modelData.choices
-            var next = options[(options.indexOf(choice.current) + 1) % options.length]
-            view.store.setTempUnit(next)
+            var index = 0
+            for (var i = 0; i < options.length; i++) if (options[i].value === choice.current) index = i
+            view.commit(row.modelData.key, options[(index + 1) % options.length].value)
           }
 
           Keys.onSpacePressed: choice.step()
@@ -160,20 +169,21 @@ FocusScope {
 
             delegate: Rectangle {
               id: choiceOption
-              required property string modelData
+              required property var modelData
 
-              readonly property bool chosen: choiceOption.modelData === choice.current
+              readonly property bool chosen: choiceOption.modelData.value === choice.current
 
-              width: Math.round(30 * view.hudScale)
-              height: Math.round(20 * view.hudScale)
+              width: Math.max(Math.round(30 * view.hudScale), optionText.implicitWidth + Math.round(12 * view.hudScale))
+              height: Math.round(18 * view.hudScale)
               color: choiceOption.chosen ? Qt.rgba(1, 1, 1, 0.16) : "transparent"
               border.width: 1
               border.color: Qt.rgba(1, 1, 1, choiceOption.chosen && choice.activeFocus ? 0.75
                 : (choiceOption.chosen ? 0.4 : 0.15))
 
               Text {
+                id: optionText
                 anchors.centerIn: parent
-                text: "°" + choiceOption.modelData
+                text: choiceOption.modelData.text
                 color: view.hud
                 opacity: choiceOption.chosen ? 1 : 0.5
                 font.family: view.hudFont
@@ -184,7 +194,7 @@ FocusScope {
                 anchors.fill: parent
                 onClicked: {
                   choice.forceActiveFocus()
-                  view.store.setTempUnit(choiceOption.modelData)
+                  view.commit(row.modelData.key, choiceOption.modelData.value)
                 }
               }
             }
@@ -293,7 +303,7 @@ FocusScope {
     id: dropdown
     visible: view.suggesting
     x: form.x + Math.round(150 * view.hudScale)
-    y: form.y + (view.locationRow + 1) * (Math.round(24 * view.hudScale) + form.spacing)
+    y: form.y + (view.locationRow + 1) * (view.rowHeight + form.spacing)
     width: form.width - Math.round(150 * view.hudScale)
     height: suggestionList.height + Math.round(8 * view.hudScale)
     color: "#17191e"

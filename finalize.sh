@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Join a finished take's two halves into its final file.
 #
-#   finalize.sh <video> <audio> <final>
+#   finalize.sh <video> <audio> <final> [denoise]
 #
 # <video> is Qt's recording (picture only) and <audio> is pw-record's WAV.
 # They were started a moment apart but stopped together, so they are lined
@@ -12,12 +12,19 @@
 # which mpv and VLC play but browsers, phones, and QuickTime do not; 8-bit
 # 4:2:0 plays anywhere. If ffmpeg is missing or fails, the raw video is kept
 # under the final name rather than lost.
+#
+# With "denoise", the sound is cleaned of steady background noise — the hiss
+# and rumble of a laptop fan next to a built-in mic: a high-pass below 90 Hz
+# for the rumble, then FFT noise reduction that tracks the noise floor. On a
+# fan-noisy take it lowers the noise in pauses by about 12 dB and leaves the
+# voice intact.
 
 set -uo pipefail
 
 video=$1
 audio=$2
 final=$3
+denoise=${4:-}
 
 duration() {
   ffprobe -v error -show_entries format=duration -of csv=p=0 "$1" 2>/dev/null
@@ -37,6 +44,7 @@ encode() {
       audio_in=(-itsoffset "${skew#-}" -i "$audio")
     fi
     audio_out=(-map 1:a -c:a aac -b:a 160k)
+    [[ $denoise == denoise ]] && audio_out+=(-af "highpass=f=90,afftdn=nr=12:nf=-50:tn=1")
   fi
   ffmpeg -n -loglevel error -i "$video" "${audio_in[@]}" \
     -map 0:v -c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p \

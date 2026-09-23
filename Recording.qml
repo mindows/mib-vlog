@@ -123,7 +123,8 @@ Item {
     // happens to the re-encode.
     recording.store.countEntry()
     Quickshell.execDetached(["bash", recording.pluginDir + "/finalize.sh",
-      recording.partialPath, recording.audioPath, recording.finalPath])
+      recording.partialPath, recording.audioPath, recording.finalPath,
+      recording.store.noiseReduction ? "denoise" : ""])
   }
 
   Process {

@@ -81,6 +81,16 @@ is taken, `-1`, `-2`, ... is appended.
   play. A notification says when the file is saved.
 - The microphone is opened only during a take.
 
+### Noise reduction
+
+On by default (settings → **Noise reduction**). When a take is saved, its
+sound is cleaned of steady background noise such as the hiss and rumble of a
+laptop fan beside a built-in mic: a high-pass below 90 Hz, then ffmpeg's
+FFT denoiser (`afftdn`) tracking the noise floor. On a fan-noisy take it
+lowers the noise in pauses by about 12 dB and leaves the voice intact. It
+does little for changing noise (typing, voices); a system-wide RNNoise
+filter (e.g. EasyEffects) handles that better.
+
 ### If the sound is distorted
 
 Check the microphone's input gain before anything else. A capture chain

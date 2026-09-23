@@ -48,6 +48,9 @@ Item {
   readonly property string locationName: data.locationName
   readonly property real latitude: data.latitude
   readonly property real longitude: data.longitude
+  // Clean fan hiss and rumble out of each take's sound when it is saved.
+  readonly property bool noiseReduction: data.noiseReduction
+
   // "C" or "F", for the TEMP readout.
   readonly property string tempUnit: data.tempUnit === "F" ? "F" : "C"
 
@@ -121,6 +124,12 @@ Item {
     store.save()
   }
 
+  function setNoiseReduction(enabled) {
+    if (data.noiseReduction === !!enabled) return
+    data.noiseReduction = !!enabled
+    store.save()
+  }
+
   function setTempUnit(unit) {
     var next = unit === "F" ? "F" : "C"
     if (data.tempUnit === next) return
@@ -191,6 +200,7 @@ Item {
       property real latitude: 0
       property real longitude: 0
       property string tempUnit: "C"
+      property bool noiseReduction: true
     }
   }
 
