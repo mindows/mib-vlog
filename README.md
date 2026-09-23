@@ -103,9 +103,11 @@ is taken, `-1`, `-2`, ... is appended.
 Off by default (settings → **Transcribe**). When on, after the video is
 saved its sound is transcribed with **voxtype** (Omarchy's
 local Whisper, using the model voxtype is configured for) into a Markdown
-file beside it — `20260922-0-013.md` next to `20260922-0-013.mp4`: a heading
-with the log entry, a line with the start time, sol, place, and length, then
-the text (or _No speech detected._). It runs after the file is saved and
+file beside it — `20260922-0-013.md` next to `20260922-0-013.mp4`: the video
+embedded at the top (`![[20260922-0-013.mp4]]`, which Obsidian plays inline),
+a heading with the log entry, a line with the start time, sol, place, and
+length, the text (or _No speech detected._), and an **Environment** section
+at the end with the weather, temp, and AQI at the start of the take. It runs after the file is saved and
 the notification is sent, and needs `voxtype` installed; without it there is
 no transcript.
 

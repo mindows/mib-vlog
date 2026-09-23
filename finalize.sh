@@ -198,11 +198,14 @@ transcribe() {
   return $status
 }
 
-# A heading and one line of context from the take's metadata, then the text.
+# The video embedded at the top (Obsidian's ![[...]] link, which resolves by
+# file name), a heading and one line of context, the text, and the
+# conditions the take was recorded in at the end.
 write_transcript() {
   local text=$1 transcript=${final%.mp4}.md length
   length=$(duration "$final")
   {
+    printf '![[%s]]\n\n' "$(basename "$final")"
     jq -r --arg length "${length:-0}" '
       def when: (.startLocal // "") | sub("T"; " ") | .[0:16];
       "# \(.title // "Log entry")\n",
@@ -216,6 +219,12 @@ write_transcript() {
     else
       printf '_No speech detected._\n'
     fi
+    jq -r '
+      [ (if (.weather // "") != "" then "- Weather: " + .weather else empty end),
+        (if (.temperature // "") != "" then "- Temp: " + .temperature else empty end),
+        (if (.aqi // "") != "" then "- AQI: " + .aqi else empty end) ]
+      | if length > 0 then "\n## Environment\n\n" + join("\n") else empty end
+    ' <<<"$take_json" 2>/dev/null
   } >"$transcript"
 }
 
