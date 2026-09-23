@@ -6,8 +6,9 @@ under a translucent mission-status HUD.
 
 ## What it does today
 
-- **Bar widget** — a breathing red record dot, placeable in the `left`,
-  `center`, or `right` section of the bar. Clicking it toggles the panel.
+- **Bar widget** — a record button (red dot inside a ring), placeable in the
+  `left`, `center`, or `right` section of the bar. Clicking it toggles the
+  panel. The dot is faded at standby and blinks slowly while recording.
 - **Overlay** — a 500x250 card at the top center of the screen. The front camera
   fills the card; the HUD (MISSION DAY / SOL, the pressure, oxygen, and
   temperature stack, LOG ENTRY, HAB > BUNKS) is drawn over it.
@@ -29,7 +30,7 @@ The camera is only active while the panel is open, so closing it releases
 | `SOL n` | whole days since the launch date, 0-based — launch day is sol 0 |
 | `TIME hh:mm` | the current time, 24-hour |
 | `host \| location` | this machine's hostname and the weather location |
-| `WATNEY #000` | the log entry counter, incremented per recording (recording is not built yet, so it stays at 0) |
+| `WATNEY #000` | the log index: takes saved so far this sol, starting over at 000 each new sol |
 
 ### Location
 
@@ -54,11 +55,31 @@ To open straight onto the settings face:
 omarchy-shell shell summon mib-vlog '{"settings":true}'
 ```
 
-## Not implemented yet
+## Recording
 
-Recording. Nothing is written to disk and the microphone is never opened;
-the `STANDBY` marker in the corner says as much. Every readout on
-the feed is now live.
+Click **STANDBY** (or its dot) to start a take: the label becomes
+**RECORDING** and the dot blinks. Click again to stop — or just close the
+panel, which stops and saves the take too.
+
+Takes are saved to the output folder (default `~/mib-vlogs`, created on
+demand; change it in settings) as `YYYYMMDD-<sol>-<seq>.mp4`, e.g.
+`20260922-0-000.mp4`, where `<seq>` is the log index on the feed. If the name
+is taken, `-1`, `-2`, ... is appended.
+
+- Video is the camera at 1280x720 with the default microphone. The HUD is
+  not burned into the file, and the image is not mirrored (the preview is).
+- A take is written to a hidden `.<name>.recording.mp4` and becomes the real
+  file only once the recorder has closed it. `finalize.sh` then re-encodes
+  it to 8-bit 4:2:0 H.264 with `ffmpeg`, because Qt's recorder writes 10-bit
+  4:4:4, which browsers, phones, and QuickTime cannot play. A notification
+  says when the file is saved.
+- The microphone is opened only during a take.
+
+Start or stop a take from a script or keybinding while the panel is open:
+
+```bash
+omarchy-shell shell call mib-vlog toggleRecording ""
+```
 
 ## Install
 
@@ -88,6 +109,8 @@ Disable or remove it with `omarchy plugin disable mib-vlog` /
 - Omarchy shell (Quickshell) with plugin schema version 1
 - `qt6-multimedia` and a camera at `/dev/video*`
 - `curl` and `jq`; `nmcli` for the Wi-Fi part of the location guess
+- `ffmpeg` to make takes playable everywhere (without it they are kept as
+  recorded)
 
 ## Layout
 
@@ -101,3 +124,6 @@ Disable or remove it with `omarchy plugin disable mib-vlog` /
 | `Weather.qml` | current conditions, the first-run location guess, and city search |
 | `WeatherCodes.js` | WMO weather codes → HUD word and icon |
 | `locate.sh` | Wi-Fi / IP location guess |
+| `Recording.qml` | takes: start/stop, file naming, hand-off to finalize |
+| `prepare.sh` | creates the output folder and picks a free file name |
+| `finalize.sh` | re-encodes a finished take and moves it to its final name |

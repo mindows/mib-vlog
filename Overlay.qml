@@ -91,7 +91,9 @@ Item {
     if (!root.settingsOpen) Qt.callLater(function() { keyCatcher.forceActiveFocus() })
   }
 
+  // Closing the panel ends the take and saves it.
   function close() {
+    recording.stop()
     root.opened = false
     root.settingsOpen = false
   }
@@ -100,6 +102,14 @@ Item {
     root.close()
     if (root.shell && typeof root.shell.hide === "function")
       root.shell.hide(root.pluginId)
+  }
+
+  // Starts or stops a take while the panel is open, for a keybinding:
+  //   omarchy-shell shell call mib-vlog toggleRecording ""
+  function toggleRecording() {
+    if (!root.opened) return "closed"
+    recording.toggle()
+    return recording.active ? "recording" : "standby"
   }
 
   function toggle() {
@@ -121,15 +131,43 @@ Item {
   }
   readonly property bool cameraAvailable: !!cameraDevice
 
+  // Takes, and the recorder the session writes them through.
+  Recording {
+    id: recording
+    store: store
+  }
+
   CaptureSession {
     id: session
     videoOutput: preview
+    recorder: recording.recorder
+    // The microphone joins the session only for a take, so an idle panel
+    // never opens it.
+    audioInput: recording.busy ? recording.microphone : null
     camera: Camera {
       id: camera
       cameraDevice: root.cameraDevice
-      active: root.opened && root.cameraAvailable
+      // Held on past the panel closing until the recorder has finished the
+      // file, or the end of the take is cut off.
+      active: (root.opened || recording.busy) && root.cameraAvailable
     }
   }
+
+  // The bar's record dot lives in another component instance, so the
+  // recording state reaches it through a small file in the runtime dir.
+  readonly property string stateFile: Quickshell.env("XDG_RUNTIME_DIR") + "/mib-vlog.state"
+
+  function publishState() {
+    Quickshell.execDetached(["sh", "-c", 'printf %s "$1" > "$2"', "sh",
+      recording.active ? "recording" : "standby", root.stateFile])
+  }
+
+  Connections {
+    target: recording
+    function onActiveChanged() { root.publishState() }
+  }
+
+  Component.onCompleted: publishState()
 
   // ----------------------------------------------------------- HUD pieces
 
@@ -532,19 +570,50 @@ Item {
           }
           spacing: Math.round(7 * root.hudScale)
 
-          Rectangle {
+          // The dot and its word are one button: click to start a take,
+          // click again to stop it.
+          Item {
+            id: recordButton
             anchors.verticalCenter: parent.verticalCenter
-            width: Math.round(11 * root.hudScale)
-            height: width
-            radius: width / 2
-            color: root.recordColor
-            opacity: 0.85
-          }
+            implicitWidth: recordRow.implicitWidth
+            implicitHeight: recordRow.implicitHeight
 
-          HudCaption {
-            anchors.verticalCenter: parent.verticalCenter
-            text: "Standby"
-            opacity: 0.7
+            // Faded at standby; blinking slowly while a take is running.
+            property real blink: 1.0
+
+            SequentialAnimation on blink {
+              running: recording.active
+              loops: Animation.Infinite
+              NumberAnimation { to: 0.15; duration: 900; easing.type: Easing.InOutSine }
+              NumberAnimation { to: 1.0; duration: 900; easing.type: Easing.InOutSine }
+            }
+
+            Row {
+              id: recordRow
+              spacing: Math.round(7 * root.hudScale)
+
+              Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                width: Math.round(11 * root.hudScale)
+                height: width
+                radius: width / 2
+                color: root.recordColor
+                opacity: recording.active ? recordButton.blink : 0.35
+              }
+
+              HudCaption {
+                anchors.verticalCenter: parent.verticalCenter
+                text: recording.active ? "Recording" : (recording.error ? "Error" : "Standby")
+                opacity: recording.active ? 0.95 : 0.7
+              }
+            }
+
+            MouseArea {
+              anchors.fill: parent
+              anchors.margins: -Math.round(4 * root.hudScale)
+              enabled: root.cameraAvailable
+              onClicked: recording.toggle()
+            }
           }
 
           // The one control on the feed: it swaps the card over to settings.

@@ -1,4 +1,6 @@
 import QtQuick
+import Quickshell
+import Quickshell.Io
 import qs.Commons
 import qs.Ui
 
@@ -12,6 +14,35 @@ BarWidget {
   moduleName: "mib-vlog"
 
   readonly property color recordColor: "#e8413a"
+
+  // Mirrors the panel's record marker: faded at standby, a slow blink while
+  // a take is running. The panel is a separate component instance, so it
+  // publishes its state to a file in the runtime dir and this watches it.
+  readonly property bool recording: stateFile.loaded && stateFile.text().trim() === "recording"
+  property real blink: 1.0
+
+  SequentialAnimation on blink {
+    running: root.recording
+    loops: Animation.Infinite
+    NumberAnimation { to: 0.15; duration: 900; easing.type: Easing.InOutSine }
+    NumberAnimation { to: 1.0; duration: 900; easing.type: Easing.InOutSine }
+  }
+
+  FileView {
+    id: stateFile
+    path: Quickshell.env("XDG_RUNTIME_DIR") + "/mib-vlog.state"
+    watchChanges: true
+    printErrors: false
+    onFileChanged: reload()
+    // The panel writes the file once it loads; until then, keep looking.
+    onLoadFailed: retry.start()
+  }
+
+  Timer {
+    id: retry
+    interval: 2000
+    onTriggered: stateFile.reload()
+  }
 
   implicitWidth: button.implicitWidth
   implicitHeight: button.implicitHeight
@@ -29,28 +60,36 @@ BarWidget {
     id: button
     anchors.fill: parent
     bar: root.bar
-    tooltipText: "Vlog"
+    tooltipText: root.recording ? "Vlog — recording" : "Vlog"
     onPressed: function(b) { root.toggleOverlay() }
 
-    // Drawn rather than glyphed: the dot has to stay record-red in every
-    // theme, while a font icon would take the bar foreground.
+    // A record button: a foreground-coloured ring, a small gap, then the
+    // red dot. The ring takes the bar's foreground so it sits with the
+    // neighbouring icons; the dot stays record-red in every theme.
     iconComponent: Component {
       Item {
+        id: icon
+        readonly property real ringSize: Math.round(Math.min(width, height) * 0.9)
+        readonly property real ringStroke: Math.max(1, Math.round(ringSize * 0.09))
+        readonly property real gap: Math.max(2, Math.round(ringSize * 0.14))
+
         Rectangle {
           anchors.centerIn: parent
-          width: Math.round(Math.min(parent.width, parent.height) * 0.62)
+          width: icon.ringSize
+          height: width
+          radius: width / 2
+          color: "transparent"
+          border.width: icon.ringStroke
+          border.color: root.bar && root.bar.foreground ? root.bar.foreground : "white"
+        }
+
+        Rectangle {
+          anchors.centerIn: parent
+          width: icon.ringSize - 2 * (icon.ringStroke + icon.gap)
           height: width
           radius: width / 2
           color: root.recordColor
-
-          // A slow breath, so the dot reads as "ready to record" instead of
-          // as a static status light.
-          SequentialAnimation on opacity {
-            running: true
-            loops: Animation.Infinite
-            NumberAnimation { from: 1.0; to: 0.55; duration: 1400; easing.type: Easing.InOutSine }
-            NumberAnimation { from: 0.55; to: 1.0; duration: 1400; easing.type: Easing.InOutSine }
-          }
+          opacity: root.recording ? root.blink : 0.4
         }
       }
     }

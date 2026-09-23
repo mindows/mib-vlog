@@ -30,11 +30,13 @@ FocusScope {
     { key: "habLabel", label: "Hab", hint: "HAB" },
     { key: "locationLabel", label: "Room", hint: "BUNKS" },
     { key: "logLabel", label: "Log entry", hint: "LOG ENTRY > WATNEY" },
-    { key: "timeLabel", label: "Time", hint: "TIME" }
+    { key: "timeLabel", label: "Time", hint: "TIME" },
+    { key: "outputDir", label: "Output folder", hint: "~/mib-vlogs" }
   ]
 
   function commit(key, value) {
     if (key === "launchDate") view.store.setLaunchDate(value)
+    else if (key === "outputDir") view.store.setOutputDir(value)
     else view.store.setLabel(key, value)
   }
 

@@ -29,7 +29,19 @@ Item {
   readonly property string logLabel: data.logLabel
   readonly property string timeLabel: data.timeLabel
   readonly property string launchDate: data.launchDate
-  readonly property int entryCount: data.entryCount
+  // The log index for today's sol: the #XXX on the feed and the SEQ in a
+  // recording's file name. It counts takes within one sol and starts over
+  // at 0 when the sol changes, so a stored count from an earlier sol reads
+  // as 0 until the first take of the new one.
+  readonly property int entryCount: data.entrySol === store.sol ? data.entryCount : 0
+
+  // Where recordings are written. A leading ~ is the home directory.
+  readonly property string outputDir: data.outputDir || "~/mib-vlogs"
+  readonly property string outputPath: {
+    var dir = store.outputDir.trim()
+    if (dir === "~" || dir.indexOf("~/") === 0) dir = Quickshell.env("HOME") + dir.slice(1)
+    return dir.replace(/\/+$/, "")
+  }
 
   // Where the weather is read for. An empty name means never set, and the
   // first open guesses it.
@@ -54,18 +66,33 @@ Item {
   readonly property int sol: {
     var launch = store.parseDate(store.launchDate)
     if (!launch) return 0
+    // Read so the binding re-runs when the date rolls over under an open
+    // panel; `new Date()` alone is not something a binding can depend on.
+    var day = store.today
     var today = new Date()
     today.setHours(0, 0, 0, 0)
     return Math.max(0, Math.round((today.getTime() - launch.getTime()) / 86400000))
   }
 
   property string clock: Qt.formatDateTime(new Date(), "HH:mm")
+  property string today: store.todayText()
   property string hostname: ""
 
   // The recording counter. Recording is not implemented yet; this is the
   // hook it will call once a take has been written.
   function countEntry() {
+    if (data.entrySol !== store.sol) {
+      data.entrySol = store.sol
+      data.entryCount = 0
+    }
     data.entryCount = data.entryCount + 1
+    store.save()
+  }
+
+  function setOutputDir(value) {
+    var text = String(value).trim() || "~/mib-vlogs"
+    if (data.outputDir === text) return
+    data.outputDir = text
     store.save()
   }
 
@@ -158,6 +185,8 @@ Item {
       property string timeLabel: "TIME"
       property string launchDate: ""
       property int entryCount: 0
+      property int entrySol: -1
+      property string outputDir: "~/mib-vlogs"
       property string locationName: ""
       property real latitude: 0
       property real longitude: 0
@@ -172,7 +201,10 @@ Item {
     interval: 1000
     repeat: true
     triggeredOnStart: true
-    onTriggered: store.clock = Qt.formatDateTime(new Date(), "HH:mm")
+    onTriggered: {
+      store.clock = Qt.formatDateTime(new Date(), "HH:mm")
+      store.today = store.todayText()
+    }
   }
 
   // Read once: a hostname does not change under a running session.
