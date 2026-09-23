@@ -13,6 +13,8 @@ under a translucent mission-status HUD.
   fills the card; the HUD (MISSION DAY / SOL, the pressure, oxygen, and
   temperature stack, LOG ENTRY, HAB > BUNKS) is drawn over it.
 - **Click anywhere on the panel to close it.** `Esc` and `q` close it too.
+  The rest of the screen is dimmed while it is up (settings → **Dim
+  background**, on by default).
 - **Settings** — the gear beside STANDBY swaps the card over to its own
   settings face. `Esc` or the gear again returns to the feed.
 

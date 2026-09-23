@@ -165,9 +165,11 @@ Item {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
     exclusionMode: ExclusionMode.Ignore
 
+    // The dimmed backdrop (settings → Dim background). Clicking it closes
+    // the panel either way.
     Rectangle {
       anchors.fill: parent
-      color: Qt.rgba(0, 0, 0, 0.78)
+      color: Qt.rgba(0, 0, 0, store.dimBackground ? 0.78 : 0)
     }
 
     Item {

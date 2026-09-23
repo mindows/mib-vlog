@@ -53,6 +53,8 @@ Item {
   // Save takes mirrored, as the preview shows them. Only the picture is
   // flipped; the burned-in HUD still reads normally.
   readonly property bool mirrorVideo: data.mirrorVideo
+  // Darken the rest of the screen while the panel is up.
+  readonly property bool dimBackground: data.dimBackground
 
   // "C" or "F", for the TEMP readout.
   readonly property string tempUnit: data.tempUnit === "F" ? "F" : "C"
@@ -124,6 +126,12 @@ Item {
     data.locationName = String(name)
     data.latitude = Number(latitude)
     data.longitude = Number(longitude)
+    store.save()
+  }
+
+  function setDimBackground(enabled) {
+    if (data.dimBackground === !!enabled) return
+    data.dimBackground = !!enabled
     store.save()
   }
 
@@ -211,6 +219,7 @@ Item {
       property string tempUnit: "C"
       property bool noiseReduction: true
       property bool mirrorVideo: true
+      property bool dimBackground: true
     }
   }
 

@@ -39,6 +39,8 @@ FocusScope {
     { key: "noiseReduction", label: "Noise reduction",
       choices: [{ value: "true", text: "On" }, { value: "false", text: "Off" }] },
     { key: "mirrorVideo", label: "Mirror video",
+      choices: [{ value: "true", text: "On" }, { value: "false", text: "Off" }] },
+    { key: "dimBackground", label: "Dim background",
       choices: [{ value: "true", text: "On" }, { value: "false", text: "Off" }] }
   ]
 
@@ -47,6 +49,7 @@ FocusScope {
     else if (key === "tempUnit") view.store.setTempUnit(value)
     else if (key === "noiseReduction") view.store.setNoiseReduction(value === "true")
     else if (key === "mirrorVideo") view.store.setMirrorVideo(value === "true")
+    else if (key === "dimBackground") view.store.setDimBackground(value === "true")
     else if (key === "outputDir") view.store.setOutputDir(value)
     else view.store.setLabel(key, value)
   }
@@ -115,7 +118,7 @@ FocusScope {
   Column {
     id: form
     x: title.x
-    y: Math.round(42 * view.hudScale)
+    y: Math.round(33 * view.hudScale)
     width: parent.width - x * 2
     spacing: Math.round(2 * view.hudScale)
 
@@ -353,15 +356,15 @@ FocusScope {
   }
 
   // Read-only counters, so the two numbers the feed derives are visible
-  // where the things that drive them are edited.
+  // where the things that drive them are edited. They share the title's
+  // line, leaving the rest of the card to the rows.
   Row {
     anchors {
-      left: parent.left
-      leftMargin: title.x
-      bottom: parent.bottom
-      bottomMargin: Math.round(14 * view.hudScale)
+      right: parent.right
+      rightMargin: title.x
+      verticalCenter: title.verticalCenter
     }
-    spacing: Math.round(24 * view.hudScale)
+    spacing: Math.round(16 * view.hudScale)
 
     Text {
       text: "Sol " + view.store.sol
