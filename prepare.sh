@@ -3,11 +3,12 @@
 #
 #   prepare.sh <output-dir> <base>
 #
-# Creates the output directory, then prints three tab-separated fields: the
+# Creates the output directory, then prints four tab-separated fields: the
 # final <base>.mp4 — or <base>-1.mp4, <base>-2.mp4, ... when that is taken —
-# the hidden file the recorder writes to until the take is finished, and the
+# the hidden file the recorder writes to until the take is finished, the
 # system's current default microphone (a PipeWire source name, possibly
-# empty), which the take records from.
+# empty), which the take records from, and a hidden directory (created) for
+# the HUD snapshots burned into the take.
 
 set -euo pipefail
 
@@ -25,4 +26,6 @@ done
 
 name=$(basename "$final" .mp4)
 mic=$(pactl get-default-source 2>/dev/null || true)
-printf '%s\t%s\t%s\n' "$final" "$dir/.$name.recording.mp4" "$mic"
+hud="$dir/.$name.hud"
+mkdir -p "$hud"
+printf '%s\t%s\t%s\t%s\n' "$final" "$dir/.$name.recording.mp4" "$mic" "$hud"

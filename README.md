@@ -66,10 +66,17 @@ demand; change it in settings) as `YYYYMMDD-<sol>-<seq>.mp4`, e.g.
 `20260922-0-000.mp4`, where `<seq>` is the log index on the feed. If the name
 is taken, `-1`, `-2`, ... is appended.
 
-- Video is the camera at 1280x720; sound is the system's default microphone
-  as of the moment the take starts, so switching mics takes effect on the
-  next take. The HUD is not burned into the file, and the image is not
-  mirrored (the preview is).
+- Video is the panel's 2:1 frame (1280x640, the camera centre-cropped as on
+  screen) with the HUD burned in — everything but the record marker and the
+  gear. The clock in the video turns over exactly on each minute. The image
+  is not mirrored (the preview is), so text in the scene reads correctly.
+- Sound is the system's default microphone as of the moment the take
+  starts, so switching mics takes effect on the next take.
+- The HUD is burned in at save time, not while recording: an off-screen
+  copy of it at the video's size is snapshotted as the take starts and at
+  each minute change, and `finalize.sh` overlays each snapshot from its
+  offset during the re-encode it does anyway. This adds about 0.1 s of
+  processing per second of footage, after the take stops.
 - Picture and sound are recorded separately — Qt for video, PipeWire's
   `pw-record` for audio — because inside the long-running shell Qt keeps
   recording whichever mic was the default when the panel first loaded. They
@@ -146,7 +153,8 @@ Disable or remove it with `omarchy plugin disable mib-vlog` /
 |---|---|
 | `manifest.json` | plugin id, kinds (`bar-widget`, `overlay`), entry points |
 | `BarWidget.qml` | the record dot; toggles the overlay |
-| `Overlay.qml` | the camera card and the HUD |
+| `Overlay.qml` | the panel: camera card, settings face, and the off-screen HUD copy |
+| `Hud.qml` | the HUD itself, laid out from its own width |
 | `SettingsStore.qml` | the settings file, the clock, sol, and the hostname |
 | `SettingsView.qml` | the settings face of the card |
 | `Weather.qml` | current conditions, the first-run location guess, and city search |

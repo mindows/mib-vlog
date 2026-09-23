@@ -19,10 +19,17 @@ import Quickshell.Io
 // only once both have closed does finalize.sh join them into
 // YYYYMMDD-<sol>-<seq>.mp4 — so a half-written take never sits under a real
 // name. The seq is the log index on the feed; it advances per saved take.
+//
+// The HUD is burned in at save time from snapshots of an off-screen copy of
+// it (hudSource): one as the take starts, and one per minute after, each
+// tagged with its offset into the take so the clock in the video turns over
+// exactly on the minute.
 Item {
   id: recording
 
   required property var store
+  // The item snapshotted for the burned-in HUD.
+  property var hudSource: null
 
   // idle -> preparing -> recording -> stopping -> idle. (Not `state`:
   // Item already has one, for its States.)
@@ -44,6 +51,11 @@ Item {
   property bool videoClosed: false
   property bool audioClosed: false
 
+  property string hudDir: ""
+  property real startedAt: 0
+  // Seconds into the take at which each snapshot takes over, in file order.
+  property var hudOffsets: []
+
   readonly property string pluginDir: {
     var url = String(Qt.resolvedUrl("."))
     return decodeURIComponent(url.replace(/^file:\/\//, "")).replace(/\/$/, "")
@@ -59,6 +71,8 @@ Item {
     recording.error = ""
     recording.stopRequested = false
     recording.partialPath = ""
+    recording.hudDir = ""
+    recording.hudOffsets = []
     recording.videoClosed = false
     recording.audioClosed = false
     recording.phase = "preparing"
@@ -116,7 +130,8 @@ Item {
     var saved = !recording.error
     recording.phase = "idle"
     if (!saved) {
-      Quickshell.execDetached(["rm", "-f", recording.partialPath, recording.audioPath])
+      Quickshell.execDetached(["rm", "-rf", recording.partialPath, recording.audioPath,
+        recording.hudDir])
       return
     }
     // The take is on disk: the next one gets the next index, whatever
@@ -124,7 +139,37 @@ Item {
     recording.store.countEntry()
     Quickshell.execDetached(["bash", recording.pluginDir + "/finalize.sh",
       recording.partialPath, recording.audioPath, recording.finalPath,
-      recording.store.noiseReduction ? "denoise" : ""])
+      recording.store.noiseReduction ? "denoise" : "",
+      recording.hudDir, recording.hudOffsets.join(",")])
+  }
+
+  // Saves the HUD as it looks now, to take over at `offset` seconds.
+  function snapshot(offset) {
+    if (!recording.hudSource || !recording.hudDir) return
+    var name = String(recording.hudOffsets.length)
+    while (name.length < 3) name = "0" + name
+    var path = recording.hudDir + "/" + name + ".png"
+    var offsets = recording.hudOffsets.slice()
+    offsets.push(Math.max(0, offset).toFixed(3))
+    recording.hudOffsets = offsets
+    // A snapshot that fails leaves its file missing; finalize.sh skips it
+    // and the one before simply runs longer.
+    recording.hudSource.grabToImage(function(result) { result.saveToFile(path) })
+  }
+
+  // The clock turned over: snapshot the new minute, placed at the minute's
+  // true start rather than at the timer tick that noticed it.
+  Connections {
+    target: recording.store
+    function onClockChanged() {
+      if (recording.phase !== "recording") return
+      var minute = new Date()
+      minute.setSeconds(0, 0)
+      var offset = (minute.getTime() - recording.startedAt) / 1000
+      var last = recording.hudOffsets.length
+        ? Number(recording.hudOffsets[recording.hudOffsets.length - 1]) : -1
+      if (offset > last) recording.snapshot(offset)
+    }
   }
 
   Process {
@@ -143,6 +188,7 @@ Item {
         }
         recording.finalPath = fields[0]
         recording.partialPath = fields[1]
+        recording.hudDir = fields[3] || ""
         var command = ["pw-record", "--rate", "48000", "--channels", "2", "--format", "s16"]
         if (fields[2]) command.push("--target", fields[2])
         command.push(recording.audioPath)
@@ -188,7 +234,11 @@ Item {
     quality: MediaRecorder.HighQuality
 
     onRecorderStateChanged: {
-      if (rec.recorderState === MediaRecorder.RecordingState) recording.phase = "recording"
+      if (rec.recorderState === MediaRecorder.RecordingState) {
+        recording.phase = "recording"
+        recording.startedAt = Date.now()
+        recording.snapshot(0)
+      }
       else if (rec.recorderState === MediaRecorder.StoppedState) recording.videoStopped()
     }
 
