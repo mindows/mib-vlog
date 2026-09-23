@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtMultimedia
+import QtQuick.Effects
 import QtQuick.Shapes
 import Quickshell
 import Quickshell.Wayland
@@ -410,169 +411,187 @@ Item {
         }
       }
 
-      // ------------------------------------------------------ header (left)
-
-      Column {
-        id: header
-        x: Math.round(26 * root.hudScale)
-        y: Math.round(16 * root.hudScale)
-        spacing: Math.round(6 * root.hudScale)
-
-        HudCaption {
-          text: store.missionLabel
-          opacity: 0.85
-          font.pixelSize: Math.round(15 * root.hudScale)
+      // Every HUD mark lives in one layer so a single soft shadow can sit
+      // behind all of it: a dark halo that keeps the text legible over a
+      // bright frame without boxing anything in.
+      Item {
+        id: hudLayer
+        anchors.fill: parent
+        layer.enabled: true
+        layer.effect: MultiEffect {
+          shadowEnabled: true
+          shadowColor: "black"
+          shadowOpacity: 0.9
+          shadowBlur: 0.5
+          blurMax: 8
+          shadowHorizontalOffset: 0
+          shadowVerticalOffset: 0
         }
 
-        HudCell { text: store.solLabel + " " + store.sol }
-      }
+        // ------------------------------------------------------ header (left)
 
-      // ------------------------------------------- environment stack (left)
+        Column {
+          id: header
+          x: Math.round(26 * root.hudScale)
+          y: Math.round(16 * root.hudScale)
+          spacing: Math.round(6 * root.hudScale)
 
-      Column {
-        x: header.x
-        y: Math.round(card.height * 0.25)
-        spacing: Math.round(10 * root.hudScale)
+          HudCaption {
+            text: store.missionLabel
+            opacity: 0.85
+            font.pixelSize: Math.round(15 * root.hudScale)
+          }
 
-        RingBlock {
-          caption: "Weather"
-          value: weather.status || weather.label || "--"
-          symbol: weather.glyph
+          HudCell { text: store.solLabel + " " + store.sol }
         }
 
-        RingBlock {
-          caption: "Temp"
-          value: root.temperatureText
-          symbol: store.tempUnit
-          fill: root.temperatureFill
+        // ------------------------------------------- environment stack (left)
+
+        Column {
+          x: header.x
+          y: Math.round(card.height * 0.25)
+          spacing: Math.round(10 * root.hudScale)
+
+          RingBlock {
+            caption: "Weather"
+            value: weather.status || weather.label || "--"
+            symbol: weather.glyph
+          }
+
+          RingBlock {
+            caption: "Temp"
+            value: root.temperatureText
+            symbol: store.tempUnit
+            fill: root.temperatureFill
+          }
+          StatBlock { caption: "Temp"; value: "21.14"; unit: "C" }
+
+          HudCaption {
+            text: "Environment"
+            opacity: 0.6
+          }
         }
-        StatBlock { caption: "Temp"; value: "21.14"; unit: "C" }
 
-        HudCaption {
-          text: "Environment"
-          opacity: 0.6
+        // ----------------------------------------------------- header (right)
+
+        Column {
+          anchors { right: parent.right; rightMargin: Math.round(26 * root.hudScale) }
+          y: Math.round(18 * root.hudScale)
+          spacing: Math.round(7 * root.hudScale)
+
+          HudCaption {
+            anchors.right: parent.right
+            text: store.timeLabel + " " + store.clock
+            opacity: 0.6
+          }
+
+          HudCaption {
+            anchors.right: parent.right
+            text: store.logLabel + " #" + root.paddedEntry
+            opacity: 0.75
+          }
         }
-      }
 
-      // ----------------------------------------------------- header (right)
+        // ------------------------------------------------------ footer (left)
 
-      Column {
-        anchors { right: parent.right; rightMargin: Math.round(26 * root.hudScale) }
-        y: Math.round(18 * root.hudScale)
-        spacing: Math.round(7 * root.hudScale)
+        Column {
+          id: footer
+          x: header.x
+          anchors { bottom: parent.bottom; bottomMargin: Math.round(20 * root.hudScale) }
+          spacing: Math.round(4 * root.hudScale)
 
-        HudCaption {
-          anchors.right: parent.right
-          text: store.timeLabel + " " + store.clock
-          opacity: 0.6
+          Row {
+            spacing: Math.round(9 * root.hudScale)
+
+            Text {
+              text: store.habLabel
+              color: root.hud
+              font.family: root.hudFont
+              font.pixelSize: Math.round(28 * root.hudScale)
+              font.bold: true
+              font.letterSpacing: Math.round(2 * root.hudScale)
+            }
+
+            Text {
+              text: store.locationLabel
+              color: root.hud
+              opacity: 0.85
+              font.family: root.hudFont
+              font.pixelSize: Math.round(28 * root.hudScale)
+              font.letterSpacing: Math.round(4 * root.hudScale)
+            }
+          }
+
+          HudCaption {
+            text: [store.hostname, store.locationName].filter(function(part) { return !!part }).join(" | ")
+            opacity: 0.45
+            font.pixelSize: Math.round(11 * root.hudScale)
+          }
         }
 
-        HudCaption {
-          anchors.right: parent.right
-          text: store.logLabel + " #" + root.paddedEntry
-          opacity: 0.75
-        }
-      }
-
-      // ------------------------------------------------------ footer (left)
-
-      Column {
-        id: footer
-        x: header.x
-        anchors { bottom: parent.bottom; bottomMargin: Math.round(20 * root.hudScale) }
-        spacing: Math.round(4 * root.hudScale)
+        // ----------------------------------------------------- record marker
 
         Row {
-          spacing: Math.round(9 * root.hudScale)
-
-          Text {
-            text: store.habLabel
-            color: root.hud
-            font.family: root.hudFont
-            font.pixelSize: Math.round(28 * root.hudScale)
-            font.bold: true
-            font.letterSpacing: Math.round(2 * root.hudScale)
+          anchors {
+            right: parent.right
+            rightMargin: Math.round(26 * root.hudScale)
+            bottom: parent.bottom
+            bottomMargin: Math.round(22 * root.hudScale)
           }
+          spacing: Math.round(7 * root.hudScale)
 
-          Text {
-            text: store.locationLabel
-            color: root.hud
+          Rectangle {
+            anchors.verticalCenter: parent.verticalCenter
+            width: Math.round(11 * root.hudScale)
+            height: width
+            radius: width / 2
+            color: root.recordColor
             opacity: 0.85
+          }
+
+          HudCaption {
+            anchors.verticalCenter: parent.verticalCenter
+            text: "Standby"
+            opacity: 0.7
+          }
+
+          // The one control on the feed: it swaps the card over to settings.
+          Text {
+            id: gear
+            anchors.verticalCenter: parent.verticalCenter
+            text: "󰒓"
+            color: root.hud
+            opacity: gearMouse.containsMouse ? 1.0 : 0.7
             font.family: root.hudFont
-            font.pixelSize: Math.round(28 * root.hudScale)
-            font.letterSpacing: Math.round(4 * root.hudScale)
+            font.pixelSize: Math.round(16 * root.hudScale)
+
+            MouseArea {
+              id: gearMouse
+              anchors.centerIn: parent
+              // A 16px glyph is a small target; the hit area is padded out to
+              // something a pointer can actually land on.
+              width: Math.max(parent.width, Math.round(26 * root.hudScale))
+              height: Math.max(parent.height, Math.round(26 * root.hudScale))
+              hoverEnabled: true
+              onClicked: root.settingsOpen = true
+            }
           }
         }
 
-        HudCaption {
-          text: [store.hostname, store.locationName].filter(function(part) { return !!part }).join(" | ")
-          opacity: 0.45
-          font.pixelSize: Math.round(9 * root.hudScale)
-        }
-      }
-
-      // ----------------------------------------------------- record marker
-
-      Row {
-        anchors {
-          right: parent.right
-          rightMargin: Math.round(26 * root.hudScale)
-          bottom: parent.bottom
-          bottomMargin: Math.round(22 * root.hudScale)
-        }
-        spacing: Math.round(7 * root.hudScale)
-
-        Rectangle {
-          anchors.verticalCenter: parent.verticalCenter
-          width: Math.round(11 * root.hudScale)
-          height: width
-          radius: width / 2
-          color: root.recordColor
-          opacity: 0.85
+        // Both rules run the full height of the HUD: from the top of the first
+        // line of text to the bottom of the last.
+        EdgeGuide {
+          x: Math.round(17 * root.hudScale)
+          y: header.y
+          height: footer.y + footer.height - header.y
         }
 
-        HudCaption {
-          anchors.verticalCenter: parent.verticalCenter
-          text: "Standby"
-          opacity: 0.7
+        EdgeGuide {
+          fromRight: true
+          x: card.width - Math.round(17 * root.hudScale) - width
+          y: header.y
+          height: footer.y + footer.height - header.y
         }
-
-        // The one control on the feed: it swaps the card over to settings.
-        Text {
-          id: gear
-          anchors.verticalCenter: parent.verticalCenter
-          text: "󰒓"
-          color: root.hud
-          opacity: gearMouse.containsMouse ? 1.0 : 0.7
-          font.family: root.hudFont
-          font.pixelSize: Math.round(16 * root.hudScale)
-
-          MouseArea {
-            id: gearMouse
-            anchors.centerIn: parent
-            // A 16px glyph is a small target; the hit area is padded out to
-            // something a pointer can actually land on.
-            width: Math.max(parent.width, Math.round(26 * root.hudScale))
-            height: Math.max(parent.height, Math.round(26 * root.hudScale))
-            hoverEnabled: true
-            onClicked: root.settingsOpen = true
-          }
-        }
-      }
-
-      // Both rules run the full height of the HUD: from the top of the first
-      // line of text to the bottom of the last.
-      EdgeGuide {
-        x: Math.round(17 * root.hudScale)
-        y: header.y
-        height: footer.y + footer.height - header.y
-      }
-
-      EdgeGuide {
-        fromRight: true
-        x: card.width - Math.round(17 * root.hudScale) - width
-        y: header.y
-        height: footer.y + footer.height - header.y
       }
 
       // The settings face. It is opaque and sits above the feed, so opening
