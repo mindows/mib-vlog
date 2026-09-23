@@ -66,8 +66,8 @@ demand; change it in settings) as `YYYYMMDD-<sol>-<seq>.mp4`, e.g.
 `20260922-0-000.mp4`, where `<seq>` is the log index on the feed. If the name
 is taken, `-1`, `-2`, ... is appended.
 
-- Video is the panel's 2:1 frame (1280x640, the camera centre-cropped as on
-  screen) with the HUD burned in — everything but the record marker and the
+- Video is the panel's 2:1 frame (1280x640: the camera with its top cut off
+  to fit, as on screen) with the HUD burned in — everything but the record marker and the
   gear. The clock in the video turns over exactly on each minute. The image
   is not mirrored (the preview is), so text in the scene reads correctly.
 - Sound is the system's default microphone as of the moment the take

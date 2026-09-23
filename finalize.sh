@@ -8,7 +8,8 @@
 # up by their ends: when the audio is longer its head is trimmed, and when
 # it is shorter it is delayed, by the difference.
 #
-# The picture is cropped to the panel's 2:1 frame (centred, as on screen)
+# The picture is cropped to the panel's 2:1 frame, keeping the bottom and
+# cutting only the top, as the panel's preview does,
 # and the HUD is burned in: <hud-dir> holds snapshots 000.png, 001.png, ...
 # and <hud-offsets> the comma-separated seconds at which each takes over.
 # A missing snapshot is skipped; the one before it simply runs longer.
@@ -85,8 +86,9 @@ encode() {
     next=2
   fi
 
-  # Centre crop to 2:1; even dimensions for 4:2:0.
-  local filter="[0:v]crop=trunc(iw/2)*2:trunc(iw/4)*2[frame]" out="[frame]"
+  # Crop to 2:1 from the bottom up, cutting only the top; even dimensions
+  # for 4:2:0.
+  local filter="[0:v]crop=trunc(iw/2)*2:trunc(iw/4)*2:0:ih-oh[frame]" out="[frame]"
   local list
   list=$(hud_list)
   if [[ -n $list ]]; then

@@ -198,10 +198,14 @@ Item {
 
       Rectangle { anchors.fill: parent; color: "#101114" }
 
+      // Full width at the camera's own aspect, pinned to the card's bottom
+      // edge: the 2:1 card clips the top of the picture only, the same crop
+      // finalize.sh applies to a saved take.
       VideoOutput {
         id: preview
-        anchors.fill: parent
-        fillMode: VideoOutput.PreserveAspectCrop
+        anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+        height: sourceRect.width > 0 ? width * sourceRect.height / sourceRect.width : width * 9 / 16
+        fillMode: VideoOutput.PreserveAspectFit
         // Mirrored, so the vlogger sees themselves the way a mirror shows them.
         transform: Scale { xScale: -1; origin.x: card.width / 2 }
       }
