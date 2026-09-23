@@ -5,10 +5,18 @@ import QtMultimedia
 import Quickshell
 import Quickshell.Io
 
-// One take at a time, from the panel's camera and the default microphone.
+// One take at a time, from the panel's camera and the system's current
+// default microphone.
 //
-// A take is written to a hidden file beside its final name, and only once
-// the recorder has closed it cleanly does finalize.sh turn it into
+// Video and sound are recorded separately and joined afterwards. Qt records
+// the picture; PipeWire's pw-record records the sound. Qt could record both,
+// but inside the long-running shell it keeps capturing from whichever mic was
+// the default when the panel first loaded — switching mics later, or handing
+// it a different device, is ignored. pw-record starts fresh for every take,
+// aimed at the mic prepare.sh reports as the default right then.
+//
+// Both halves are written to hidden files beside the take's final name, and
+// only once both have closed does finalize.sh join them into
 // YYYYMMDD-<sol>-<seq>.mp4 — so a half-written take never sits under a real
 // name. The seq is the log index on the feed; it advances per saved take.
 Item {
@@ -22,17 +30,19 @@ Item {
   property string error: ""
 
   readonly property bool active: phase === "preparing" || phase === "recording"
-  // True until the recorder has let go of the file; the camera has to stay
-  // on that long or the end of the take is lost.
+  // True until both halves have let go of their files; the camera has to
+  // stay on that long or the end of the take is lost.
   readonly property bool busy: phase !== "idle"
 
-  // Handed to the panel's CaptureSession.
+  // Handed to the panel's CaptureSession, which records video only.
   property alias recorder: rec
-  property alias microphone: mic
 
   property string finalPath: ""
   property string partialPath: ""
+  readonly property string audioPath: partialPath.replace(/\.mp4$/, ".wav")
   property bool stopRequested: false
+  property bool videoClosed: false
+  property bool audioClosed: false
 
   readonly property string pluginDir: {
     var url = String(Qt.resolvedUrl("."))
@@ -48,6 +58,9 @@ Item {
     if (recording.busy) return
     recording.error = ""
     recording.stopRequested = false
+    recording.partialPath = ""
+    recording.videoClosed = false
+    recording.audioClosed = false
     recording.phase = "preparing"
     var seq = String(recording.store.entryCount)
     while (seq.length < 3) seq = "0" + seq
@@ -62,7 +75,20 @@ Item {
       recording.stopRequested = true
     } else if (recording.phase === "recording") {
       recording.phase = "stopping"
+      // Stopped together, so the two halves end at the same moment; that is
+      // what finalize.sh lines them up on.
       rec.stop()
+      recording.stopMicrophone()
+    }
+  }
+
+  function stopMicrophone() {
+    if (microphone.running) {
+      // SIGINT: pw-record finishes the WAV header before it exits.
+      microphone.signal(2)
+      micDeadline.start()
+    } else {
+      recording.audioClosed = true
     }
   }
 
@@ -71,13 +97,42 @@ Item {
     recording.phase = "idle"
   }
 
+  // The video half has closed — on request, or on its own after an error,
+  // in which case the microphone is taken down with it.
+  function videoStopped() {
+    if (recording.videoClosed || !recording.partialPath || recording.phase === "idle") return
+    if (recording.phase !== "stopping") {
+      recording.phase = "stopping"
+      recording.stopMicrophone()
+    }
+    recording.videoClosed = true
+    recording.settle()
+  }
+
+  // Both halves are closed: hand the take off, or drop it if it failed.
+  function settle() {
+    if (!recording.videoClosed || !recording.audioClosed || recording.phase === "idle") return
+    micDeadline.stop()
+    var saved = !recording.error
+    recording.phase = "idle"
+    if (!saved) {
+      Quickshell.execDetached(["rm", "-f", recording.partialPath, recording.audioPath])
+      return
+    }
+    // The take is on disk: the next one gets the next index, whatever
+    // happens to the re-encode.
+    recording.store.countEntry()
+    Quickshell.execDetached(["bash", recording.pluginDir + "/finalize.sh",
+      recording.partialPath, recording.audioPath, recording.finalPath])
+  }
+
   Process {
     id: prepare
     stdout: StdioCollector {
       waitForEnd: true
       onStreamFinished: {
-        var paths = text.trim().split("\t")
-        if (paths.length !== 2 || !paths[0] || !paths[1]) {
+        var fields = text.replace(/\n$/, "").split("\t")
+        if (fields.length < 2 || !fields[0] || !fields[1]) {
           recording.fail("Cannot write to " + recording.store.outputDir)
           return
         }
@@ -85,9 +140,14 @@ Item {
           recording.phase = "idle"
           return
         }
-        recording.finalPath = paths[0]
-        recording.partialPath = paths[1]
-        rec.outputLocation = "file://" + encodeURI(paths[1])
+        recording.finalPath = fields[0]
+        recording.partialPath = fields[1]
+        var command = ["pw-record", "--rate", "48000", "--channels", "2", "--format", "s16"]
+        if (fields[2]) command.push("--target", fields[2])
+        command.push(recording.audioPath)
+        microphone.command = command
+        microphone.running = true
+        rec.outputLocation = "file://" + encodeURI(fields[1])
         rec.record()
       }
     }
@@ -97,35 +157,46 @@ Item {
     }
   }
 
-  AudioInput { id: mic }
+  // The sound half of a take.
+  Process {
+    id: microphone
+    onExited: {
+      recording.audioClosed = true
+      recording.settle()
+    }
+  }
+
+  // pw-record exits at once on SIGINT; if it ever hangs, the take is still
+  // saved, just without sound.
+  Timer {
+    id: micDeadline
+    interval: 3000
+    onTriggered: {
+      if (microphone.running) microphone.running = false
+      recording.audioClosed = true
+      recording.settle()
+    }
+  }
 
   MediaRecorder {
     id: rec
     mediaFormat {
       fileFormat: MediaFormat.MPEG4
       videoCodec: MediaFormat.VideoCodec.H264
-      audioCodec: MediaFormat.AudioCodec.AAC
     }
     quality: MediaRecorder.HighQuality
 
     onRecorderStateChanged: {
-      if (rec.recorderState === MediaRecorder.RecordingState) {
-        recording.phase = "recording"
-      } else if (rec.recorderState === MediaRecorder.StoppedState && recording.phase !== "idle") {
-        var saved = recording.phase === "stopping" && !recording.error
-        recording.phase = "idle"
-        if (!saved) return
-        // The take is on disk: the next one gets the next index, whatever
-        // happens to the re-encode.
-        recording.store.countEntry()
-        Quickshell.execDetached(["bash", recording.pluginDir + "/finalize.sh",
-          recording.partialPath, recording.finalPath])
-      }
+      if (rec.recorderState === MediaRecorder.RecordingState) recording.phase = "recording"
+      else if (rec.recorderState === MediaRecorder.StoppedState) recording.videoStopped()
     }
 
     onErrorOccurred: function(error, errorString) {
       recording.error = errorString || "Recording failed"
-      if (rec.recorderState === MediaRecorder.StoppedState) recording.phase = "idle"
+      if (rec.recorderState === MediaRecorder.StoppedState) {
+        if (recording.partialPath) recording.videoStopped()
+        else recording.phase = "idle"
+      }
     }
   }
 }

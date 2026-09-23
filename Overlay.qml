@@ -140,10 +140,8 @@ Item {
   CaptureSession {
     id: session
     videoOutput: preview
+    // Video only: sound is recorded outside Qt (see Recording.qml).
     recorder: recording.recorder
-    // The microphone joins the session only for a take, so an idle panel
-    // never opens it.
-    audioInput: recording.busy ? recording.microphone : null
     camera: Camera {
       id: camera
       cameraDevice: root.cameraDevice

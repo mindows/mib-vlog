@@ -66,14 +66,31 @@ demand; change it in settings) as `YYYYMMDD-<sol>-<seq>.mp4`, e.g.
 `20260922-0-000.mp4`, where `<seq>` is the log index on the feed. If the name
 is taken, `-1`, `-2`, ... is appended.
 
-- Video is the camera at 1280x720 with the default microphone. The HUD is
-  not burned into the file, and the image is not mirrored (the preview is).
-- A take is written to a hidden `.<name>.recording.mp4` and becomes the real
-  file only once the recorder has closed it. `finalize.sh` then re-encodes
-  it to 8-bit 4:2:0 H.264 with `ffmpeg`, because Qt's recorder writes 10-bit
-  4:4:4, which browsers, phones, and QuickTime cannot play. A notification
-  says when the file is saved.
+- Video is the camera at 1280x720; sound is the system's default microphone
+  as of the moment the take starts, so switching mics takes effect on the
+  next take. The HUD is not burned into the file, and the image is not
+  mirrored (the preview is).
+- Picture and sound are recorded separately — Qt for video, PipeWire's
+  `pw-record` for audio — because inside the long-running shell Qt keeps
+  recording whichever mic was the default when the panel first loaded. They
+  are stopped together and lined up by their ends.
+- A take is written to hidden `.<name>.recording.mp4` / `.wav` files and
+  becomes the real file only once both have closed. `finalize.sh` then joins
+  them and re-encodes to 8-bit 4:2:0 H.264 with `ffmpeg`, because Qt's
+  recorder writes 10-bit 4:4:4, which browsers, phones, and QuickTime cannot
+  play. A notification says when the file is saved.
 - The microphone is opened only during a take.
+
+### If the sound is distorted
+
+Check the microphone's input gain before anything else. A capture chain
+turned all the way up clips ordinary room sound into harsh, buzzing noise
+that no player or encoder can undo. For a built-in laptop mic, e.g.:
+
+```bash
+amixer -c 0 sget 'Internal Mic Boost'   # 3 = +30 dB, often far too hot
+amixer -c 0 sset 'Internal Mic Boost' 0
+```
 
 Start or stop a take from a script or keybinding while the panel is open:
 
@@ -109,8 +126,9 @@ Disable or remove it with `omarchy plugin disable mib-vlog` /
 - Omarchy shell (Quickshell) with plugin schema version 1
 - `qt6-multimedia` and a camera at `/dev/video*`
 - `curl` and `jq`; `nmcli` for the Wi-Fi part of the location guess
-- `ffmpeg` to make takes playable everywhere (without it they are kept as
-  recorded)
+- `ffmpeg` to join and re-encode takes (without it the picture is kept as
+  recorded, without sound)
+- `pw-record` and `pactl` (PipeWire) for the sound
 
 ## Layout
 
@@ -126,4 +144,4 @@ Disable or remove it with `omarchy plugin disable mib-vlog` /
 | `locate.sh` | Wi-Fi / IP location guess |
 | `Recording.qml` | takes: start/stop, file naming, hand-off to finalize |
 | `prepare.sh` | creates the output folder and picks a free file name |
-| `finalize.sh` | re-encodes a finished take and moves it to its final name |
+| `finalize.sh` | joins a take's picture and sound, re-encodes, and moves it to its final name |
