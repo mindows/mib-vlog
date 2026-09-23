@@ -68,8 +68,11 @@ is taken, `-1`, `-2`, ... is appended.
 
 - Video is the panel's 2:1 frame (1280x640: the camera with its top cut off
   to fit, as on screen) with the HUD burned in — everything but the record marker and the
-  gear. The clock in the video turns over exactly on each minute. The image
-  is not mirrored (the preview is), so text in the scene reads correctly.
+  gear. The clock in the video turns over exactly on each minute.
+- The picture is saved mirrored, as the preview shows it (settings →
+  **Mirror video**, on by default). Only the camera is flipped; the HUD is
+  laid on afterwards and reads normally. Turn it off for the camera's true
+  view, in which text in the scene reads correctly.
 - Sound is the system's default microphone as of the moment the take
   starts, so switching mics takes effect on the next take.
 - The HUD is burned in at save time, not while recording: an off-screen

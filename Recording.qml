@@ -140,7 +140,8 @@ Item {
     Quickshell.execDetached(["bash", recording.pluginDir + "/finalize.sh",
       recording.partialPath, recording.audioPath, recording.finalPath,
       recording.store.noiseReduction ? "denoise" : "",
-      recording.hudDir, recording.hudOffsets.join(",")])
+      recording.hudDir, recording.hudOffsets.join(","),
+      recording.store.mirrorVideo ? "mirror" : ""])
   }
 
   // Saves the HUD as it looks now, to take over at `offset` seconds.

@@ -37,6 +37,8 @@ FocusScope {
     { key: "timeLabel", label: "Time", hint: "TIME" },
     { key: "outputDir", label: "Output folder", hint: "~/mib-vlogs" },
     { key: "noiseReduction", label: "Noise reduction",
+      choices: [{ value: "true", text: "On" }, { value: "false", text: "Off" }] },
+    { key: "mirrorVideo", label: "Mirror video",
       choices: [{ value: "true", text: "On" }, { value: "false", text: "Off" }] }
   ]
 
@@ -44,6 +46,7 @@ FocusScope {
     if (key === "launchDate") view.store.setLaunchDate(value)
     else if (key === "tempUnit") view.store.setTempUnit(value)
     else if (key === "noiseReduction") view.store.setNoiseReduction(value === "true")
+    else if (key === "mirrorVideo") view.store.setMirrorVideo(value === "true")
     else if (key === "outputDir") view.store.setOutputDir(value)
     else view.store.setLabel(key, value)
   }

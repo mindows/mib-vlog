@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Join a finished take's parts into its final file.
 #
-#   finalize.sh <video> <audio> <final> [denoise] [hud-dir] [hud-offsets]
+#   finalize.sh <video> <audio> <final> [denoise] [hud-dir] [hud-offsets] [mirror]
 #
 # <video> is Qt's recording (picture only) and <audio> is pw-record's WAV.
 # They were started a moment apart but stopped together, so they are lined
@@ -13,6 +13,8 @@
 # and the HUD is burned in: <hud-dir> holds snapshots 000.png, 001.png, ...
 # and <hud-offsets> the comma-separated seconds at which each takes over.
 # A missing snapshot is skipped; the one before it simply runs longer.
+# With "mirror", the picture is flipped left to right, as the preview shows
+# it, before the HUD goes on, so the HUD still reads normally.
 #
 # The video is re-encoded in any case: Qt's recorder writes H.264 in 10-bit
 # 4:4:4, which mpv and VLC play but browsers, phones, and QuickTime do not;
@@ -33,6 +35,7 @@ final=$3
 denoise=${4:-}
 hud_dir=${5:-}
 hud_offsets=${6:-}
+mirror=${7:-}
 
 duration() {
   ffprobe -v error -show_entries format=duration -of csv=p=0 "$1" 2>/dev/null
@@ -88,7 +91,9 @@ encode() {
 
   # Crop to 2:1 from the bottom up, cutting only the top; even dimensions
   # for 4:2:0.
-  local filter="[0:v]crop=trunc(iw/2)*2:trunc(iw/4)*2:0:ih-oh[frame]" out="[frame]"
+  local flip=""
+  [[ $mirror == mirror ]] && flip=",hflip"
+  local filter="[0:v]crop=trunc(iw/2)*2:trunc(iw/4)*2:0:ih-oh$flip[frame]" out="[frame]"
   local list
   list=$(hud_list)
   if [[ -n $list ]]; then

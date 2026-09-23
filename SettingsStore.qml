@@ -50,6 +50,9 @@ Item {
   readonly property real longitude: data.longitude
   // Clean fan hiss and rumble out of each take's sound when it is saved.
   readonly property bool noiseReduction: data.noiseReduction
+  // Save takes mirrored, as the preview shows them. Only the picture is
+  // flipped; the burned-in HUD still reads normally.
+  readonly property bool mirrorVideo: data.mirrorVideo
 
   // "C" or "F", for the TEMP readout.
   readonly property string tempUnit: data.tempUnit === "F" ? "F" : "C"
@@ -121,6 +124,12 @@ Item {
     data.locationName = String(name)
     data.latitude = Number(latitude)
     data.longitude = Number(longitude)
+    store.save()
+  }
+
+  function setMirrorVideo(enabled) {
+    if (data.mirrorVideo === !!enabled) return
+    data.mirrorVideo = !!enabled
     store.save()
   }
 
@@ -201,6 +210,7 @@ Item {
       property real longitude: 0
       property string tempUnit: "C"
       property bool noiseReduction: true
+      property bool mirrorVideo: true
     }
   }
 
