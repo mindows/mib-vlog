@@ -182,7 +182,9 @@ Item {
       }
     }
 
-    // Clicking anywhere — scrim or card — closes the panel.
+    // Clicking anywhere — scrim or card — closes the panel, ending and
+    // saving any take. With Tap to record on, the card has its own handler
+    // (below) and only the scrim closes.
     MouseArea {
       anchors.fill: parent
       acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
@@ -222,6 +224,15 @@ Item {
         font.family: root.hudFont
         font.pixelSize: Math.round(24 * root.hudScale)
         font.letterSpacing: Math.round(3 * root.hudScale)
+      }
+
+      // Tap to record: a click on the preview starts or stops a take rather
+      // than falling through to the close-on-click behind the card. The
+      // HUD's own controls sit above this and still take their clicks.
+      MouseArea {
+        anchors.fill: parent
+        enabled: store.tapToRecord && root.cameraAvailable
+        onClicked: recording.toggle()
       }
 
       Hud {

@@ -13,6 +13,9 @@ under a translucent mission-status HUD.
   fills the card; the HUD (MISSION DAY / SOL, the pressure, oxygen, and
   temperature stack, LOG ENTRY, HAB > BUNKS) is drawn over it.
 - **Click anywhere on the panel to close it.** `Esc` and `q` close it too.
+  With settings → **Tap to record** on, a click on the preview starts or
+  stops a take instead, and a click outside the card closes the panel
+  (saving any take in progress).
   The rest of the screen is dimmed while it is up (settings → **Dim
   background**, on by default).
 - **Settings** — the gear beside STANDBY swaps the card over to its own
@@ -59,7 +62,8 @@ omarchy-shell shell summon mib-vlog '{"settings":true}'
 
 ## Recording
 
-Click **STANDBY** (or its dot) to start a take: the label becomes
+Click **STANDBY** (or its dot) — or, with **Tap to record** on, anywhere on
+the preview — to start a take: the label becomes
 **RECORDING** and the dot blinks. Click again to stop — or just close the
 panel, which stops and saves the take too.
 

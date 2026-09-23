@@ -20,7 +20,18 @@ FocusScope {
   signal done()
 
   // Row pitch, shared with the location dropdown that hangs below its row.
-  readonly property int rowHeight: Math.round(21 * view.hudScale)
+  readonly property int rowHeight: Math.round(24 * view.hudScale)
+
+  // Scrolls the list just enough to show the row at `index`, for focus
+  // moving by keyboard.
+  function reveal(index) {
+    var pitch = view.rowHeight + form.spacing
+    var top = index * pitch
+    var bottom = top + view.rowHeight
+    if (top < scroller.contentY) scroller.contentY = top
+    else if (bottom > scroller.contentY + scroller.height)
+      scroller.contentY = bottom - scroller.height
+  }
 
   Keys.onEscapePressed: view.done()
 
@@ -41,6 +52,8 @@ FocusScope {
     { key: "mirrorVideo", label: "Mirror video",
       choices: [{ value: "true", text: "On" }, { value: "false", text: "Off" }] },
     { key: "dimBackground", label: "Dim background",
+      choices: [{ value: "true", text: "On" }, { value: "false", text: "Off" }] },
+    { key: "tapToRecord", label: "Tap to record",
       choices: [{ value: "true", text: "On" }, { value: "false", text: "Off" }] }
   ]
 
@@ -50,6 +63,7 @@ FocusScope {
     else if (key === "noiseReduction") view.store.setNoiseReduction(value === "true")
     else if (key === "mirrorVideo") view.store.setMirrorVideo(value === "true")
     else if (key === "dimBackground") view.store.setDimBackground(value === "true")
+    else if (key === "tapToRecord") view.store.setTapToRecord(value === "true")
     else if (key === "outputDir") view.store.setOutputDir(value)
     else view.store.setLabel(key, value)
   }
@@ -115,170 +129,199 @@ FocusScope {
     font.capitalization: Font.AllUppercase
   }
 
-  Column {
-    id: form
+  // The rows scroll: the card is a fixed 2:1 plaque, and the list outgrew
+  // it. The area stops above the gear's corner.
+  Flickable {
+    id: scroller
     x: title.x
     y: Math.round(33 * view.hudScale)
     width: parent.width - x * 2
-    spacing: Math.round(2 * view.hudScale)
+    height: parent.height - y - Math.round(30 * view.hudScale)
+    contentHeight: form.height
+    clip: true
+    boundsBehavior: Flickable.StopAtBounds
+    // A moved list leaves the location suggestions stranded; close them.
+    onContentYChanged: if (view.suggesting) view.endSearch()
 
-    Repeater {
-      model: view.rows
+    Column {
+      id: form
+      width: scroller.width
+      spacing: Math.round(3 * view.hudScale)
 
-      delegate: Item {
-        id: row
-        required property var modelData
-        required property int index
+      Repeater {
+        model: view.rows
 
-        width: form.width
-        height: view.rowHeight
+        delegate: Item {
+          id: row
+          required property var modelData
+          required property int index
 
-        Text {
-          id: rowLabel
-          anchors.verticalCenter: parent.verticalCenter
-          width: Math.round(150 * view.hudScale)
-          text: row.modelData.label
-          color: view.hud
-          opacity: 0.6
-          font.family: view.hudFont
-          font.pixelSize: Math.round(11 * view.hudScale)
-          font.letterSpacing: Math.round(1.5 * view.hudScale)
-          font.capitalization: Font.AllUppercase
-        }
+          width: form.width
+          height: view.rowHeight
 
-        readonly property bool isChoice: !!row.modelData.choices
-
-        // A pick-one row: the options side by side, the chosen one boxed.
-        // Tab reaches it like a field; arrows or space switch it.
-        Row {
-          id: choice
-          visible: row.isChoice
-          anchors { left: rowLabel.right; verticalCenter: parent.verticalCenter }
-          spacing: Math.round(6 * view.hudScale)
-          activeFocusOnTab: row.isChoice
-
-          readonly property string current: row.isChoice ? String(view.store[row.modelData.key]) : ""
-
-          function step() {
-            var options = row.modelData.choices
-            var index = 0
-            for (var i = 0; i < options.length; i++) if (options[i].value === choice.current) index = i
-            view.commit(row.modelData.key, options[(index + 1) % options.length].value)
+          Text {
+            id: rowLabel
+            anchors.verticalCenter: parent.verticalCenter
+            width: Math.round(150 * view.hudScale)
+            text: row.modelData.label
+            color: view.hud
+            opacity: 0.6
+            font.family: view.hudFont
+            font.pixelSize: Math.round(11 * view.hudScale)
+            font.letterSpacing: Math.round(1.5 * view.hudScale)
+            font.capitalization: Font.AllUppercase
           }
 
-          Keys.onSpacePressed: choice.step()
-          Keys.onLeftPressed: choice.step()
-          Keys.onRightPressed: choice.step()
+          readonly property bool isChoice: !!row.modelData.choices
 
-          Repeater {
-            model: row.isChoice ? row.modelData.choices : []
+          // A pick-one row: the options side by side, the chosen one boxed.
+          // Tab reaches it like a field; arrows or space switch it.
+          Row {
+            id: choice
+            visible: row.isChoice
+            anchors { left: rowLabel.right; verticalCenter: parent.verticalCenter }
+            spacing: Math.round(6 * view.hudScale)
+            activeFocusOnTab: row.isChoice
+          onActiveFocusChanged: if (activeFocus) view.reveal(row.index)
 
-            delegate: Rectangle {
-              id: choiceOption
-              required property var modelData
+            readonly property string current: row.isChoice ? String(view.store[row.modelData.key]) : ""
 
-              readonly property bool chosen: choiceOption.modelData.value === choice.current
+            function step() {
+              var options = row.modelData.choices
+              var index = 0
+              for (var i = 0; i < options.length; i++) if (options[i].value === choice.current) index = i
+              view.commit(row.modelData.key, options[(index + 1) % options.length].value)
+            }
 
-              width: Math.max(Math.round(30 * view.hudScale), optionText.implicitWidth + Math.round(12 * view.hudScale))
-              height: Math.round(18 * view.hudScale)
-              color: choiceOption.chosen ? Qt.rgba(1, 1, 1, 0.16) : "transparent"
-              border.width: 1
-              border.color: Qt.rgba(1, 1, 1, choiceOption.chosen && choice.activeFocus ? 0.75
-                : (choiceOption.chosen ? 0.4 : 0.15))
+            Keys.onSpacePressed: choice.step()
+            Keys.onLeftPressed: choice.step()
+            Keys.onRightPressed: choice.step()
 
-              Text {
-                id: optionText
-                anchors.centerIn: parent
-                text: choiceOption.modelData.text
-                color: view.hud
-                opacity: choiceOption.chosen ? 1 : 0.5
-                font.family: view.hudFont
-                font.pixelSize: Math.round(12 * view.hudScale)
-              }
+            Repeater {
+              model: row.isChoice ? row.modelData.choices : []
 
-              MouseArea {
-                anchors.fill: parent
-                onClicked: {
-                  choice.forceActiveFocus()
-                  view.commit(row.modelData.key, choiceOption.modelData.value)
+              delegate: Rectangle {
+                id: choiceOption
+                required property var modelData
+
+                readonly property bool chosen: choiceOption.modelData.value === choice.current
+
+                width: Math.max(Math.round(30 * view.hudScale), optionText.implicitWidth + Math.round(12 * view.hudScale))
+                height: Math.round(18 * view.hudScale)
+                color: choiceOption.chosen ? Qt.rgba(1, 1, 1, 0.16) : "transparent"
+                border.width: 1
+                border.color: Qt.rgba(1, 1, 1, choiceOption.chosen && choice.activeFocus ? 0.75
+                  : (choiceOption.chosen ? 0.4 : 0.15))
+
+                Text {
+                  id: optionText
+                  anchors.centerIn: parent
+                  text: choiceOption.modelData.text
+                  color: view.hud
+                  opacity: choiceOption.chosen ? 1 : 0.5
+                  font.family: view.hudFont
+                  font.pixelSize: Math.round(12 * view.hudScale)
+                }
+
+                MouseArea {
+                  anchors.fill: parent
+                  onClicked: {
+                    choice.forceActiveFocus()
+                    view.commit(row.modelData.key, choiceOption.modelData.value)
+                  }
                 }
               }
             }
           }
-        }
 
-        // A hairline that lights up on focus, instead of a boxed control —
-        // the HUD has no chrome anywhere else.
-        Rectangle {
-          visible: !row.isChoice
-          anchors { left: rowLabel.right; right: parent.right; bottom: parent.bottom }
-          anchors.bottomMargin: Math.round(3 * view.hudScale)
-          height: Math.max(1, Math.round(1 * view.hudScale))
-          color: Qt.rgba(1, 1, 1, input.activeFocus ? 0.75 : 0.2)
-        }
-
-        TextInput {
-          id: input
-          visible: !row.isChoice
-          enabled: !row.isChoice
-          anchors {
-            left: rowLabel.right
-            right: parent.right
-            verticalCenter: parent.verticalCenter
-          }
-          activeFocusOnTab: true
-          focus: row.index === 0
-          text: view.store[row.modelData.key]
-          color: view.hud
-          selectionColor: Qt.rgba(1, 1, 1, 0.3)
-          selectedTextColor: view.hud
-          font.family: view.hudFont
-          font.pixelSize: Math.round(13 * view.hudScale)
-          clip: true
-
-          readonly property bool isSearch: row.modelData.search === true
-
-          Component.onCompleted: if (isSearch) {
-            view.locationInput = input
-            view.locationRow = row.index
+          // A hairline that lights up on focus, instead of a boxed control —
+          // the HUD has no chrome anywhere else.
+          Rectangle {
+            visible: !row.isChoice
+            anchors { left: rowLabel.right; right: parent.right; bottom: parent.bottom }
+            anchors.bottomMargin: Math.round(3 * view.hudScale)
+            height: Math.max(1, Math.round(1 * view.hudScale))
+            color: Qt.rgba(1, 1, 1, input.activeFocus ? 0.75 : 0.2)
           }
 
-          onTextEdited: if (isSearch) {
-            view.highlighted = 0
-            view.weather.search(text)
-          }
-          onActiveFocusChanged: if (isSearch && !activeFocus) view.endSearch()
-          onEditingFinished: if (!isSearch) view.commit(row.modelData.key, text)
-
-          Keys.onReturnPressed: isSearch ? view.commitLocation() : view.commit(row.modelData.key, text)
-          Keys.onEnterPressed: isSearch ? view.commitLocation() : view.commit(row.modelData.key, text)
-          Keys.onDownPressed: function(event) {
-            if (isSearch && view.suggesting)
-              view.highlighted = Math.min(view.suggestions.length - 1, view.highlighted + 1)
-            else event.accepted = false
-          }
-          Keys.onUpPressed: function(event) {
-            if (isSearch && view.suggesting) view.highlighted = Math.max(0, view.highlighted - 1)
-            else event.accepted = false
-          }
-          // Esc backs out of the suggestions first, and only then out of
-          // settings.
-          Keys.onEscapePressed: function(event) {
-            if (isSearch && (view.suggesting || text !== view.store.locationName)) view.endSearch()
-            else event.accepted = false
-          }
-
-          Text {
-            anchors.fill: parent
-            visible: input.text === ""
-            text: row.modelData.hint
+          TextInput {
+            id: input
+            visible: !row.isChoice
+            enabled: !row.isChoice
+            anchors {
+              left: rowLabel.right
+              right: parent.right
+              verticalCenter: parent.verticalCenter
+            }
+            activeFocusOnTab: true
+            focus: row.index === 0
+            text: view.store[row.modelData.key]
             color: view.hud
-            opacity: 0.25
-            font: input.font
+            selectionColor: Qt.rgba(1, 1, 1, 0.3)
+            selectedTextColor: view.hud
+            font.family: view.hudFont
+            font.pixelSize: Math.round(13 * view.hudScale)
+            clip: true
+
+            readonly property bool isSearch: row.modelData.search === true
+
+            Component.onCompleted: if (isSearch) {
+              view.locationInput = input
+              view.locationRow = row.index
+            }
+
+            onTextEdited: if (isSearch) {
+              view.highlighted = 0
+              view.weather.search(text)
+            }
+            onActiveFocusChanged: {
+            if (activeFocus) view.reveal(row.index)
+            else if (isSearch) view.endSearch()
+          }
+            onEditingFinished: if (!isSearch) view.commit(row.modelData.key, text)
+
+            Keys.onReturnPressed: isSearch ? view.commitLocation() : view.commit(row.modelData.key, text)
+            Keys.onEnterPressed: isSearch ? view.commitLocation() : view.commit(row.modelData.key, text)
+            Keys.onDownPressed: function(event) {
+              if (isSearch && view.suggesting)
+                view.highlighted = Math.min(view.suggestions.length - 1, view.highlighted + 1)
+              else event.accepted = false
+            }
+            Keys.onUpPressed: function(event) {
+              if (isSearch && view.suggesting) view.highlighted = Math.max(0, view.highlighted - 1)
+              else event.accepted = false
+            }
+            // Esc backs out of the suggestions first, and only then out of
+            // settings.
+            Keys.onEscapePressed: function(event) {
+              if (isSearch && (view.suggesting || text !== view.store.locationName)) view.endSearch()
+              else event.accepted = false
+            }
+
+            Text {
+              anchors.fill: parent
+              visible: input.text === ""
+              text: row.modelData.hint
+              color: view.hud
+              opacity: 0.25
+              font: input.font
+            }
           }
         }
       }
     }
+  }
+
+  // Where the list is: a hairline along the right edge, shown only when
+  // there is more than fits.
+  Rectangle {
+    visible: scroller.contentHeight > scroller.height
+    x: scroller.x + scroller.width + Math.round(6 * view.hudScale)
+    y: scroller.y + scroller.visibleArea.yPosition * scroller.height
+    width: Math.max(1, Math.round(2 * view.hudScale))
+    height: scroller.visibleArea.heightRatio * scroller.height
+    radius: width / 2
+    color: Qt.rgba(1, 1, 1, 0.35)
   }
 
   Text {
@@ -308,9 +351,9 @@ FocusScope {
   Rectangle {
     id: dropdown
     visible: view.suggesting
-    x: form.x + Math.round(150 * view.hudScale)
-    y: form.y + (view.locationRow + 1) * (view.rowHeight + form.spacing)
-    width: form.width - Math.round(150 * view.hudScale)
+    x: scroller.x + Math.round(150 * view.hudScale)
+    y: scroller.y + (view.locationRow + 1) * (view.rowHeight + form.spacing) - scroller.contentY
+    width: scroller.width - Math.round(150 * view.hudScale)
     height: suggestionList.height + Math.round(8 * view.hudScale)
     color: "#17191e"
     border.width: 1

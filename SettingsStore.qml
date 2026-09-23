@@ -55,6 +55,9 @@ Item {
   readonly property bool mirrorVideo: data.mirrorVideo
   // Darken the rest of the screen while the panel is up.
   readonly property bool dimBackground: data.dimBackground
+  // Tapping the preview starts and stops a take, instead of closing the
+  // panel. Tapping outside the card still closes it (saving any take).
+  readonly property bool tapToRecord: data.tapToRecord
 
   // "C" or "F", for the TEMP readout.
   readonly property string tempUnit: data.tempUnit === "F" ? "F" : "C"
@@ -126,6 +129,12 @@ Item {
     data.locationName = String(name)
     data.latitude = Number(latitude)
     data.longitude = Number(longitude)
+    store.save()
+  }
+
+  function setTapToRecord(enabled) {
+    if (data.tapToRecord === !!enabled) return
+    data.tapToRecord = !!enabled
     store.save()
   }
 
@@ -220,6 +229,7 @@ Item {
       property bool noiseReduction: true
       property bool mirrorVideo: true
       property bool dimBackground: true
+      property bool tapToRecord: false
     }
   }
 
