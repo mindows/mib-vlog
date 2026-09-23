@@ -58,6 +58,8 @@ Item {
   // Tapping the preview starts and stops a take, instead of closing the
   // panel. Tapping outside the card still closes it (saving any take).
   readonly property bool tapToRecord: data.tapToRecord
+  // Write a Markdown transcript (voxtype) beside each saved take.
+  readonly property bool transcribe: data.transcribe
 
   // "C" or "F", for the TEMP readout.
   readonly property string tempUnit: data.tempUnit === "F" ? "F" : "C"
@@ -129,6 +131,12 @@ Item {
     data.locationName = String(name)
     data.latitude = Number(latitude)
     data.longitude = Number(longitude)
+    store.save()
+  }
+
+  function setTranscribe(enabled) {
+    if (data.transcribe === !!enabled) return
+    data.transcribe = !!enabled
     store.save()
   }
 
@@ -230,6 +238,7 @@ Item {
       property bool mirrorVideo: true
       property bool dimBackground: true
       property bool tapToRecord: false
+      property bool transcribe: false
     }
   }
 

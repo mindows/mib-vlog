@@ -146,7 +146,8 @@ Item {
       recording.store.noiseReduction ? "denoise" : "",
       recording.hudDir, recording.hudOffsets.join(","),
       recording.store.mirrorVideo ? "mirror" : "",
-      JSON.stringify(recording.takeInfo)])
+      JSON.stringify(recording.takeInfo),
+      recording.store.transcribe ? "transcribe" : ""])
   }
 
   // ISO 8601 in local time with its UTC offset, e.g. 2026-09-22T21:16:50-07:00.

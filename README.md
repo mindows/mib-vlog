@@ -99,7 +99,8 @@ is taken, `-1`, `-2`, ... is appended.
 
 ### Transcript
 
-After the video is saved, its sound is transcribed with **voxtype** (Omarchy's
+Off by default (settings → **Transcribe**). When on, after the video is
+saved its sound is transcribed with **voxtype** (Omarchy's
 local Whisper, using the model voxtype is configured for) into a Markdown
 file beside it — `20260922-0-013.md` next to `20260922-0-013.mp4`: a heading
 with the log entry, a line with the start time, sol, place, and length, then

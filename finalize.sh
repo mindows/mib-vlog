@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Join a finished take's parts into its final file.
 #
-#   finalize.sh <video> <audio> <final> [denoise] [hud-dir] [hud-offsets] [mirror] [take-json]
+#   finalize.sh <video> <audio> <final> [denoise] [hud-dir] [hud-offsets] [mirror] [take-json] [transcribe]
 #
 # <video> is Qt's recording (picture only) and <audio> is pw-record's WAV.
 # They were started a moment apart but stopped together, so they are lined
@@ -26,10 +26,10 @@
 # standard creation date and ISO 6709 location that photo libraries read,
 # a title and one-line summary for players, and every field under mibvlog.*.
 #
-# Once the video is saved, its sound is transcribed with voxtype (Omarchy's
-# local Whisper, using whatever model voxtype is configured for) into a
-# Markdown file beside it: <final> with .md for .mp4. Without voxtype, or
-# for a take with no sound, there is no transcript.
+# With "transcribe", once the video is saved its sound is transcribed with
+# voxtype (Omarchy's local Whisper, using whatever model voxtype is
+# configured for) into a Markdown file beside it: <final> with .md for .mp4.
+# Without voxtype, or for a take with no sound, there is no transcript.
 #
 # With "denoise", the sound is cleaned of steady background noise — the hiss
 # and rumble of a laptop fan next to a built-in mic: a high-pass below 90 Hz
@@ -47,6 +47,7 @@ hud_dir=${5:-}
 hud_offsets=${6:-}
 mirror=${7:-}
 take_json=${8:-"{}"}
+want_transcript=${9:-}
 
 duration() {
   ffprobe -v error -show_entries format=duration -of csv=p=0 "$1" 2>/dev/null
@@ -218,6 +219,6 @@ write_transcript() {
   } >"$transcript"
 }
 
-if $have_audio && command -v voxtype >/dev/null; then
+if [[ $want_transcript == transcribe ]] && $have_audio && command -v voxtype >/dev/null; then
   text=$(transcribe) && write_transcript "$text"
 fi

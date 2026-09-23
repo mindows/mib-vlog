@@ -54,6 +54,8 @@ FocusScope {
     { key: "dimBackground", label: "Dim background",
       choices: [{ value: "true", text: "On" }, { value: "false", text: "Off" }] },
     { key: "tapToRecord", label: "Tap to record",
+      choices: [{ value: "true", text: "On" }, { value: "false", text: "Off" }] },
+    { key: "transcribe", label: "Transcribe",
       choices: [{ value: "true", text: "On" }, { value: "false", text: "Off" }] }
   ]
 
@@ -64,6 +66,7 @@ FocusScope {
     else if (key === "mirrorVideo") view.store.setMirrorVideo(value === "true")
     else if (key === "dimBackground") view.store.setDimBackground(value === "true")
     else if (key === "tapToRecord") view.store.setTapToRecord(value === "true")
+    else if (key === "transcribe") view.store.setTranscribe(value === "true")
     else if (key === "outputDir") view.store.setOutputDir(value)
     else view.store.setLabel(key, value)
   }
