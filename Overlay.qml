@@ -34,6 +34,14 @@ Item {
     live: root.opened
   }
 
+  // Current conditions for the WEATHER readout, and the location lookups
+  // the settings face uses.
+  Weather {
+    id: weather
+    store: store
+    live: root.opened
+  }
+
   readonly property string pluginId: (manifest && manifest.id) || "mib-vlog"
   readonly property color hud: "#f2f5f7"
   readonly property color recordColor: "#e8413a"
@@ -193,6 +201,59 @@ Item {
     }
   }
 
+  // The weather readout: caption over condition, with the condition's icon
+  // in a circle as tall as the two lines together — the one readout whose
+  // circle holds a picture rather than a unit.
+  component WeatherBlock: Row {
+    spacing: Math.round(10 * root.hudScale)
+
+    Column {
+      anchors.verticalCenter: parent.verticalCenter
+      spacing: Math.round(-5 * root.hudScale)
+
+      HudCaption { id: weatherCaption; text: "Weather" }
+
+      HudReadout {
+        id: weatherValue
+        text: weather.status || weather.label || "--"
+        font.capitalization: Font.AllUppercase
+      }
+    }
+
+    Rectangle {
+      id: weatherRing
+      anchors.verticalCenter: parent.verticalCenter
+      width: weatherCaption.implicitHeight + weatherValue.implicitHeight
+      height: width
+      radius: width / 2
+      color: "transparent"
+      border.width: Math.max(1, Math.round(1.2 * root.hudScale))
+      border.color: Qt.rgba(root.hud.r, root.hud.g, root.hud.b, 0.55)
+
+      // Weather glyphs sit off-centre in their em box, and each one
+      // differently, so the icon is centred on its inked bounds rather than
+      // on its line box.
+      TextMetrics {
+        id: iconInk
+        font: weatherIcon.font
+        text: weatherIcon.text
+      }
+
+      Text {
+        id: weatherIcon
+        x: Math.round(weatherRing.width / 2
+          - (iconInk.tightBoundingRect.x + iconInk.tightBoundingRect.width / 2))
+        y: Math.round(weatherRing.height / 2
+          - (weatherIcon.baselineOffset + iconInk.tightBoundingRect.y + iconInk.tightBoundingRect.height / 2))
+        text: weather.glyph
+        color: root.hud
+        opacity: 0.9
+        font.family: root.hudFont
+        font.pixelSize: Math.round(weatherRing.width * 0.5)
+      }
+    }
+  }
+
   // A boxed cell. The header's sol counter is one cell holding both words, so
   // "SOL 19" reads as a single plate rather than two adjacent chips.
   component HudCell: Rectangle {
@@ -321,7 +382,7 @@ Item {
         y: Math.round(card.height * 0.25)
         spacing: Math.round(10 * root.hudScale)
 
-        StatBlock { caption: "Pressure"; value: "12.48"; unit: "PSI" }
+        WeatherBlock { }
         StatBlock { caption: "Oxygen"; value: "20.79"; unit: "%" }
         StatBlock { caption: "Temp"; value: "21.14"; unit: "C" }
 
@@ -459,6 +520,7 @@ Item {
 
         SettingsView {
           store: store
+          weather: weather
           hudScale: root.hudScale
           hud: root.hud
           hudFont: root.hudFont

@@ -32,6 +32,19 @@ Item {
   readonly property string launchDate: data.launchDate
   readonly property int entryCount: data.entryCount
 
+  // Where the weather is read for. An empty name means never set, and the
+  // first open guesses it.
+  readonly property string locationName: data.locationName
+  readonly property real latitude: data.latitude
+  readonly property real longitude: data.longitude
+
+  // True once the settings file has been read (or found missing) and its
+  // directory exists — the point at which defaults can be written without
+  // clobbering a file that simply had not loaded yet.
+  readonly property bool ready: store.fileResolved && store.dirReady
+  property bool fileResolved: false
+  property bool dirReady: false
+
   // ---------------------------------------------------------------- derived
 
   // Sol 0 is launch day, so today's sol is the whole-day count since then.
@@ -73,6 +86,13 @@ Item {
     store.save()
   }
 
+  function setLocation(name, latitude, longitude) {
+    data.locationName = String(name)
+    data.latitude = Number(latitude)
+    data.longitude = Number(longitude)
+    store.save()
+  }
+
   function save() {
     file.writeAdapter()
   }
@@ -102,13 +122,13 @@ Item {
   Process {
     id: mkdir
     command: ["mkdir", "-p", store.configDir]
-    // Only once the directory exists can a first write land, and only then
-    // is a missing launch date worth defaulting: the first run is launch day.
-    onExited: function(code) {
-      if (code !== 0) return
-      if (!store.launchDate) store.setLaunchDate(store.todayText())
-    }
+    onExited: function(code) { store.dirReady = code === 0 }
   }
+
+  // The first run is launch day. Written only once `ready`: the file loads
+  // asynchronously, and defaulting before it lands would overwrite a real
+  // launch date with today's.
+  onReadyChanged: if (ready && !launchDate) setLaunchDate(todayText())
 
   FileView {
     id: file
@@ -116,6 +136,9 @@ Item {
     watchChanges: true
     printErrors: false
     onFileChanged: reload()
+    onLoaded: store.fileResolved = true
+    // A missing file is the first run, not an error: the defaults stand.
+    onLoadFailed: store.fileResolved = true
 
     JsonAdapter {
       id: data
@@ -128,6 +151,9 @@ Item {
       property string connectedLabel: "CONNECTED"
       property string launchDate: ""
       property int entryCount: 0
+      property string locationName: ""
+      property real latitude: 0
+      property real longitude: 0
     }
   }
 

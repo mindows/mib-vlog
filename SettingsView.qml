@@ -12,6 +12,7 @@ FocusScope {
   id: view
 
   required property var store
+  required property var weather
   property real hudScale: 1
   property color hud: "#f2f5f7"
   property string hudFont: "monospace"
@@ -24,8 +25,9 @@ FocusScope {
     { key: "missionLabel", label: "Mission day", hint: "MISSION DAY" },
     { key: "solLabel", label: "Sol", hint: "SOL" },
     { key: "launchDate", label: "Launch date", hint: "YYYY-MM-DD" },
+    { key: "locationName", label: "Location", hint: "CITY, STATE, COUNTRY", search: true },
     { key: "habLabel", label: "Hab", hint: "HAB" },
-    { key: "locationLabel", label: "Location", hint: "BUNKS" },
+    { key: "locationLabel", label: "Room", hint: "BUNKS" },
     { key: "logLabel", label: "Log entry", hint: "LOG ENTRY > WATNEY" },
     { key: "timeLabel", label: "Time", hint: "TIME" },
     { key: "connectedLabel", label: "Connected", hint: "CONNECTED" }
@@ -34,6 +36,42 @@ FocusScope {
   function commit(key, value) {
     if (key === "launchDate") view.store.setLaunchDate(value)
     else view.store.setLabel(key, value)
+  }
+
+  // ------------------------------------------------------- location search
+
+  // The location row is a search box, not a free-text label: what it holds
+  // is only ever a place the geocoder returned, so the weather always has
+  // coordinates to ask about.
+  property var locationInput: null
+  property int locationRow: -1
+  property int highlighted: 0
+  readonly property var suggestions: view.weather.suggestions
+  readonly property bool suggesting: !!view.locationInput && view.locationInput.activeFocus
+    && view.suggestions.length > 0
+
+  function pick(index) {
+    var place = view.suggestions[index]
+    if (!place) return
+    view.store.setLocation(place.name, place.latitude, place.longitude)
+    view.endSearch()
+  }
+
+  // Leaving the box without picking puts the saved place back.
+  function endSearch() {
+    view.weather.clearSearch()
+    view.highlighted = 0
+    if (view.locationInput) view.locationInput.text = view.store.locationName
+  }
+
+  function commitLocation() {
+    if (view.suggestions.length > 0) {
+      view.pick(view.highlighted)
+    } else if (view.locationInput && view.locationInput.text.trim() === "") {
+      // An emptied box asks for a fresh guess from Wi-Fi and IP.
+      view.weather.locate()
+      view.endSearch()
+    }
   }
 
   // Swallows the clicks that would otherwise close the panel: a form the
@@ -118,9 +156,37 @@ FocusScope {
           font.pixelSize: Math.round(13 * view.hudScale)
           clip: true
 
-          onEditingFinished: view.commit(row.modelData.key, text)
-          Keys.onReturnPressed: view.commit(row.modelData.key, text)
-          Keys.onEnterPressed: view.commit(row.modelData.key, text)
+          readonly property bool isSearch: row.modelData.search === true
+
+          Component.onCompleted: if (isSearch) {
+            view.locationInput = input
+            view.locationRow = row.index
+          }
+
+          onTextEdited: if (isSearch) {
+            view.highlighted = 0
+            view.weather.search(text)
+          }
+          onActiveFocusChanged: if (isSearch && !activeFocus) view.endSearch()
+          onEditingFinished: if (!isSearch) view.commit(row.modelData.key, text)
+
+          Keys.onReturnPressed: isSearch ? view.commitLocation() : view.commit(row.modelData.key, text)
+          Keys.onEnterPressed: isSearch ? view.commitLocation() : view.commit(row.modelData.key, text)
+          Keys.onDownPressed: function(event) {
+            if (isSearch && view.suggesting)
+              view.highlighted = Math.min(view.suggestions.length - 1, view.highlighted + 1)
+            else event.accepted = false
+          }
+          Keys.onUpPressed: function(event) {
+            if (isSearch && view.suggesting) view.highlighted = Math.max(0, view.highlighted - 1)
+            else event.accepted = false
+          }
+          // Esc backs out of the suggestions first, and only then out of
+          // settings.
+          Keys.onEscapePressed: function(event) {
+            if (isSearch && (view.suggesting || text !== view.store.locationName)) view.endSearch()
+            else event.accepted = false
+          }
 
           Text {
             anchors.fill: parent
@@ -159,6 +225,56 @@ FocusScope {
     }
   }
 
+  Rectangle {
+    id: dropdown
+    visible: view.suggesting
+    x: form.x + Math.round(150 * view.hudScale)
+    y: form.y + (view.locationRow + 1) * (Math.round(24 * view.hudScale) + form.spacing)
+    width: form.width - Math.round(150 * view.hudScale)
+    height: suggestionList.height + Math.round(8 * view.hudScale)
+    color: "#17191e"
+    border.width: 1
+    border.color: Qt.rgba(1, 1, 1, 0.18)
+
+    Column {
+      id: suggestionList
+      x: Math.round(4 * view.hudScale)
+      y: Math.round(4 * view.hudScale)
+      width: parent.width - x * 2
+
+      Repeater {
+        model: view.suggestions
+
+        delegate: Rectangle {
+          id: option
+          required property var modelData
+          required property int index
+
+          width: suggestionList.width
+          height: Math.round(22 * view.hudScale)
+          color: option.index === view.highlighted ? Qt.rgba(1, 1, 1, 0.14) : "transparent"
+
+          Text {
+            anchors { left: parent.left; leftMargin: Math.round(6 * view.hudScale); right: parent.right
+                      verticalCenter: parent.verticalCenter }
+            text: option.modelData.name
+            elide: Text.ElideRight
+            color: view.hud
+            font.family: view.hudFont
+            font.pixelSize: Math.round(12 * view.hudScale)
+          }
+
+          MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            onEntered: view.highlighted = option.index
+            onClicked: view.pick(option.index)
+          }
+        }
+      }
+    }
+  }
+
   // Read-only counters, so the two numbers the feed derives are visible
   // where the things that drive them are edited.
   Row {
@@ -172,6 +288,16 @@ FocusScope {
 
     Text {
       text: "Sol " + view.store.sol
+      color: view.hud
+      opacity: 0.55
+      font.family: view.hudFont
+      font.pixelSize: Math.round(11 * view.hudScale)
+      font.letterSpacing: Math.round(1.5 * view.hudScale)
+      font.capitalization: Font.AllUppercase
+    }
+
+    Text {
+      text: view.weather.searching ? "Searching" : (view.weather.status || view.weather.label)
       color: view.hud
       opacity: 0.55
       font.family: view.hudFont
