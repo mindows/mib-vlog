@@ -184,6 +184,8 @@ Item {
       latitude: hasPlace ? store.latitude : null,
       longitude: hasPlace ? store.longitude : null,
       hostname: store.hostname,
+      // Whether the place and hostname go into the file's tags.
+      tagLocation: store.locationMetadata,
       weather: conditions,
       temperature: temperature,
       aqi: aqi,

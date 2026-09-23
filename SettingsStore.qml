@@ -60,6 +60,10 @@ Item {
   readonly property bool tapToRecord: data.tapToRecord
   // Write a Markdown transcript (voxtype) beside each saved take.
   readonly property bool transcribe: data.transcribe
+  // Write where a take was made — place name, coordinates, and hostname —
+  // into its file's metadata. Off by default: a shared file would carry
+  // them along.
+  readonly property bool locationMetadata: data.locationMetadata
 
   // "C" or "F", for the TEMP readout.
   readonly property string tempUnit: data.tempUnit === "F" ? "F" : "C"
@@ -131,6 +135,12 @@ Item {
     data.locationName = String(name)
     data.latitude = Number(latitude)
     data.longitude = Number(longitude)
+    store.save()
+  }
+
+  function setLocationMetadata(enabled) {
+    if (data.locationMetadata === !!enabled) return
+    data.locationMetadata = !!enabled
     store.save()
   }
 
@@ -239,6 +249,7 @@ Item {
       property bool dimBackground: true
       property bool tapToRecord: false
       property bool transcribe: false
+      property bool locationMetadata: false
     }
   }
 

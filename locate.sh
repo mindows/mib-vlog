@@ -15,7 +15,8 @@
 
 set -uo pipefail
 
-UA="mib-vlog/0.1 (omarchy plugin)"
+version=$(jq -r '.version // empty' "$(dirname "$0")/manifest.json" 2>/dev/null)
+UA="mib-vlog/${version:-0} (+https://github.com/mindows/mib-vlog)"
 
 access_points() {
   command -v nmcli >/dev/null || return 0

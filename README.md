@@ -132,11 +132,15 @@ See them all with `ffprobe -show_entries format_tags <file>`. (ffprobe
 lists `creation_time` twice — the MP4 header keeps its own copy — and both
 name the same second.)
 
-These tags include the weather location's coordinates and this machine's
-hostname. When the location came from the first-run Wi-Fi guess, the
-coordinates can be close to where you are. Strip them before sharing a take
-publicly, e.g. `ffmpeg -i in.mp4 -map_metadata -1 -c copy out.mp4`, or set
-the location to a city with the settings search.
+The place name, its coordinates (the ISO 6709 tag and
+`mibvlog.latitude/longitude`), and the hostname are only written with
+settings → **Location metadata** on; it is off by default, so a shared file
+does not say where it was made. When the location came from the first-run
+Wi-Fi guess, the coordinates can be close to where you are — pick a city
+with the settings search if you turn this on. The HUD burned into the
+picture still shows `host | location` either way, and the transcript keeps
+the place. To strip the tags from a file afterwards:
+`ffmpeg -i in.mp4 -map_metadata -1 -c copy out.mp4`.
 
 ### Noise reduction
 

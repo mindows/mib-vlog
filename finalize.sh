@@ -25,6 +25,8 @@
 # is written into the file's metadata, with the duration added here: the
 # standard creation date and ISO 6709 location that photo libraries read,
 # a title and one-line summary for players, and every field under mibvlog.*.
+# The place, coordinates, and hostname are left out unless the take's
+# tagLocation is true.
 #
 # With "transcribe", once the video is saved its sound is transcribed with
 # voxtype (Omarchy's local Whisper, using whatever model voxtype is
@@ -97,7 +99,10 @@ take_metadata() {
     def coord: (if . >= 0 then "+" else "" end) + (. * 10000 | round / 10000 | tostring);
     def put($key; $value): if ($value // "") == "" then empty else "\($key)=\($value)" end;
 
-    ($seconds | floor) as $whole
+    # Without tagLocation, where the take was made stays out of the file.
+    (if .tagLocation == true then . else .location = "" | .latitude = null
+      | .longitude = null | .hostname = "" end)
+    | ($seconds | floor) as $whole
     | "\($whole / 3600 | floor | two):\($whole % 3600 / 60 | floor | two):\($whole % 60 | two)" as $hms
     | (.latitude != null and .longitude != null) as $placed
     | ([.weather, .temperature] | map(select(. != "")) | join(" ")) as $conditions
