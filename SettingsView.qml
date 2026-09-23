@@ -307,7 +307,7 @@ FocusScope {
             Text {
               anchors.fill: parent
               visible: input.text === ""
-              text: row.modelData.hint
+              text: row.modelData.hint || ""
               color: view.hud
               opacity: 0.25
               font: input.font
