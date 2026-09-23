@@ -9,18 +9,41 @@ under a translucent mission-status HUD.
 - **Bar widget** — a breathing red record dot, placeable in the `left`,
   `center`, or `right` section of the bar. Clicking it toggles the panel.
 - **Overlay** — a 500x250 card at the top center of the screen. The front camera
-  fills the card; the HUD (MISSION DAY / SOL 19, the pressure, oxygen, and
+  fills the card; the HUD (MISSION DAY / SOL, the pressure, oxygen, and
   temperature stack, LOG ENTRY, HAB > BUNKS) is drawn over it.
 - **Click anywhere on the panel to close it.** `Esc` and `q` close it too.
+- **Settings** — the gear beside STANDBY swaps the card over to its own
+  settings face. `Esc` or the gear again returns to the feed.
 
 The camera is only active while the panel is open, so closing it releases
 `/dev/video*` and drops the webcam light.
 
+## What the HUD shows
+
+| Reading | Where it comes from |
+|---|---|
+| MISSION DAY, SOL, HAB, BUNKS, LOG ENTRY > WATNEY, TIME, CONNECTED | editable labels, defaulting to the strings above |
+| `SOL n` | whole days since the launch date, 0-based — launch day is sol 0 |
+| `TIME hh:mm` | the current time, 24-hour |
+| `CONNECTED:host addr` | this machine's hostname and the IPv4 address on its default route |
+| `WATNEY #000` | the log entry counter, incremented per recording (recording is not built yet, so it stays at 0) |
+
+Settings live in `~/.config/mib-vlog/settings.json`, which is written on the
+first open — the launch date defaults to that day, so a fresh install starts
+at sol 0. Editing the file by hand works too; the panel reloads on change.
+
+To open straight onto the settings face:
+
+```bash
+omarchy-shell shell summon mib-vlog '{"settings":true}'
+```
+
 ## Not implemented yet
 
-Recording. The HUD readouts are static placeholder text — nothing is
-sampled, nothing is written to disk, and the microphone is never opened.
-The `STANDBY` marker in the corner says as much.
+Recording. Nothing is written to disk and the microphone is never opened;
+the `STANDBY` marker in the corner says as much. The pressure, oxygen, and
+temperature readouts are still static placeholder text — only the clock, sol,
+connection, and labels are real.
 
 ## Install
 
@@ -57,3 +80,5 @@ Disable or remove it with `omarchy plugin disable mib-vlog` /
 | `manifest.json` | plugin id, kinds (`bar-widget`, `overlay`), entry points |
 | `BarWidget.qml` | the record dot; toggles the overlay |
 | `Overlay.qml` | the camera card and the HUD |
+| `SettingsStore.qml` | the settings file, the clock, sol, and the connection string |
+| `SettingsView.qml` | the settings face of the card |

@@ -24,21 +24,48 @@ Item {
   property var manifest: null
 
   property bool opened: false
+  // The card shows either the feed or its settings, never both.
+  property bool settingsOpen: false
+  onSettingsOpenChanged: if (!settingsOpen && root.opened) keyCatcher.forceActiveFocus()
+
+  // Labels, launch date, clock, connection, and the entry counter.
+  SettingsStore {
+    id: store
+    live: root.opened
+  }
 
   readonly property string pluginId: (manifest && manifest.id) || "mib-vlog"
   readonly property color hud: "#f2f5f7"
   readonly property color recordColor: "#e8413a"
   readonly property string hudFont: Style.font.family
 
+  // Log entries read as an index on the feed, so they keep three digits.
+  readonly property string paddedEntry: {
+    var text = String(Math.max(0, store.entryCount))
+    while (text.length < 3) text = "0" + text
+    return text
+  }
+
   // ------------------------------------------------------------- lifecycle
 
+  // `{"settings": true}` opens straight onto the settings face, which is how
+  // the panel is driven from a script:
+  //   omarchy-shell shell summon mib-vlog '{"settings":true}'
   function open(payloadJson) {
+    var payload = ({})
+    try {
+      if (payloadJson) payload = JSON.parse(payloadJson) || ({})
+    } catch (e) {
+      payload = ({})
+    }
+    root.settingsOpen = payload.settings === true
     root.opened = true
-    Qt.callLater(function() { keyCatcher.forceActiveFocus() })
+    if (!root.settingsOpen) Qt.callLater(function() { keyCatcher.forceActiveFocus() })
   }
 
   function close() {
     root.opened = false
+    root.settingsOpen = false
   }
 
   function dismiss() {
@@ -279,12 +306,12 @@ Item {
         spacing: Math.round(6 * root.hudScale)
 
         HudCaption {
-          text: "Mission Day"
+          text: store.missionLabel
           opacity: 0.85
           font.pixelSize: Math.round(15 * root.hudScale)
         }
 
-        HudCell { text: "Sol 19" }
+        HudCell { text: store.solLabel + " " + store.sol }
       }
 
       // ------------------------------------------- environment stack (left)
@@ -313,13 +340,13 @@ Item {
 
         HudCaption {
           anchors.right: parent.right
-          text: "Time 06 53"
+          text: store.timeLabel + " " + store.clock
           opacity: 0.6
         }
 
         HudCaption {
           anchors.right: parent.right
-          text: "Log Entry > Watney #009"
+          text: store.logLabel + " #" + root.paddedEntry
           opacity: 0.75
         }
       }
@@ -336,7 +363,7 @@ Item {
           spacing: Math.round(9 * root.hudScale)
 
           Text {
-            text: "HAB"
+            text: store.habLabel
             color: root.hud
             font.family: root.hudFont
             font.pixelSize: Math.round(28 * root.hudScale)
@@ -345,7 +372,7 @@ Item {
           }
 
           Text {
-            text: "BUNKS"
+            text: store.locationLabel
             color: root.hud
             opacity: 0.85
             font.family: root.hudFont
@@ -355,7 +382,7 @@ Item {
         }
 
         HudCaption {
-          text: "Connected:0022213Ø2EWBVC-2-4002060-26-3"
+          text: store.connectedLabel + ":" + store.connection
           opacity: 0.45
           font.pixelSize: Math.round(9 * root.hudScale)
         }
@@ -386,6 +413,28 @@ Item {
           text: "Standby"
           opacity: 0.7
         }
+
+        // The one control on the feed: it swaps the card over to settings.
+        Text {
+          id: gear
+          anchors.verticalCenter: parent.verticalCenter
+          text: "󰒓"
+          color: root.hud
+          opacity: gearMouse.containsMouse ? 1.0 : 0.7
+          font.family: root.hudFont
+          font.pixelSize: Math.round(16 * root.hudScale)
+
+          MouseArea {
+            id: gearMouse
+            anchors.centerIn: parent
+            // A 16px glyph is a small target; the hit area is padded out to
+            // something a pointer can actually land on.
+            width: Math.max(parent.width, Math.round(26 * root.hudScale))
+            height: Math.max(parent.height, Math.round(26 * root.hudScale))
+            hoverEnabled: true
+            onClicked: root.settingsOpen = true
+          }
+        }
       }
 
       // Both rules run the full height of the HUD: from the top of the first
@@ -401,6 +450,27 @@ Item {
         x: card.width - Math.round(17 * root.hudScale) - width
         y: header.y
         height: footer.y + footer.height - header.y
+      }
+
+      // The settings face. It is opaque and sits above the feed, so opening
+      // it covers the camera and the HUD without either knowing about it.
+      Component {
+        id: settingsComponent
+
+        SettingsView {
+          store: store
+          hudScale: root.hudScale
+          hud: root.hud
+          hudFont: root.hudFont
+          onDone: root.settingsOpen = false
+        }
+      }
+
+      Loader {
+        anchors.fill: parent
+        active: root.settingsOpen
+        sourceComponent: settingsComponent
+        onLoaded: item.forceActiveFocus()
       }
 
       // A hairline frame, to sell the "this is a recording feed" look.
