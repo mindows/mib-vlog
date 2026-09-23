@@ -28,7 +28,7 @@ Item {
   property bool settingsOpen: false
   onSettingsOpenChanged: if (!settingsOpen && root.opened) keyCatcher.forceActiveFocus()
 
-  // Labels, launch date, clock, connection, and the entry counter.
+  // Labels, launch date, clock, hostname, and the entry counter.
   SettingsStore {
     id: store
     live: root.opened
@@ -443,7 +443,7 @@ Item {
         }
 
         HudCaption {
-          text: store.connectedLabel + ":" + store.connection
+          text: [store.hostname, store.locationName].filter(function(part) { return !!part }).join(" | ")
           opacity: 0.45
           font.pixelSize: Math.round(9 * root.hudScale)
         }

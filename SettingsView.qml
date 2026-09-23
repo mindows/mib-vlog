@@ -29,8 +29,7 @@ FocusScope {
     { key: "habLabel", label: "Hab", hint: "HAB" },
     { key: "locationLabel", label: "Room", hint: "BUNKS" },
     { key: "logLabel", label: "Log entry", hint: "LOG ENTRY > WATNEY" },
-    { key: "timeLabel", label: "Time", hint: "TIME" },
-    { key: "connectedLabel", label: "Connected", hint: "CONNECTED" }
+    { key: "timeLabel", label: "Time", hint: "TIME" }
   ]
 
   function commit(key, value) {

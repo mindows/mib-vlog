@@ -5,7 +5,7 @@ import Quickshell
 import Quickshell.Io
 
 // Everything the HUD reads that is not the camera: the editable labels, the
-// mission clock, the sol counter, and the connection string.
+// mission clock, the sol counter, and this machine's hostname.
 //
 // Labels and the launch date persist to ~/.config/mib-vlog/settings.json.
 // The file is the whole state; there is no shell.json coupling, because the
@@ -28,7 +28,6 @@ Item {
   readonly property string locationLabel: data.locationLabel
   readonly property string logLabel: data.logLabel
   readonly property string timeLabel: data.timeLabel
-  readonly property string connectedLabel: data.connectedLabel
   readonly property string launchDate: data.launchDate
   readonly property int entryCount: data.entryCount
 
@@ -59,7 +58,7 @@ Item {
   }
 
   property string clock: Qt.formatDateTime(new Date(), "HH:mm")
-  property string connection: ""
+  property string hostname: ""
 
   // The recording counter. Recording is not implemented yet; this is the
   // hook it will call once a take has been written.
@@ -148,7 +147,6 @@ Item {
       property string locationLabel: "BUNKS"
       property string logLabel: "LOG ENTRY > WATNEY"
       property string timeLabel: "TIME"
-      property string connectedLabel: "CONNECTED"
       property string launchDate: ""
       property int entryCount: 0
       property string locationName: ""
@@ -167,17 +165,13 @@ Item {
     onTriggered: store.clock = Qt.formatDateTime(new Date(), "HH:mm")
   }
 
-  // Hostname plus the address on the route that actually reaches the world,
-  // which is the one worth showing on a mission feed.
+  // Read once: a hostname does not change under a running session.
   Process {
-    id: netProbe
-    command: ["sh", "-c",
-      "printf '%s %s' \"$(hostname)\" \"$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{ print $7; exit }')\""]
+    running: true
+    command: ["hostname"]
     stdout: StdioCollector {
       waitForEnd: true
-      onStreamFinished: store.connection = text.trim()
+      onStreamFinished: store.hostname = text.trim()
     }
   }
-
-  onLiveChanged: if (live) netProbe.running = true
 }

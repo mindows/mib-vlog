@@ -22,11 +22,11 @@ The camera is only active while the panel is open, so closing it releases
 
 | Reading | Where it comes from |
 |---|---|
-| MISSION DAY, SOL, HAB, BUNKS, LOG ENTRY > WATNEY, TIME, CONNECTED | editable labels, defaulting to the strings above |
+| MISSION DAY, SOL, HAB, BUNKS, LOG ENTRY > WATNEY, TIME | editable labels, defaulting to the strings above |
 | `WEATHER` | current conditions (SUNNY, RAIN, OVERCAST, ...) at the configured location, with a matching icon in the circle; refreshed on open and every 15 minutes |
 | `SOL n` | whole days since the launch date, 0-based — launch day is sol 0 |
 | `TIME hh:mm` | the current time, 24-hour |
-| `CONNECTED:host addr` | this machine's hostname and the IPv4 address on its default route |
+| `host \| location` | this machine's hostname and the weather location |
 | `WATNEY #000` | the log entry counter, incremented per recording (recording is not built yet, so it stays at 0) |
 
 ### Location
@@ -94,7 +94,7 @@ Disable or remove it with `omarchy plugin disable mib-vlog` /
 | `manifest.json` | plugin id, kinds (`bar-widget`, `overlay`), entry points |
 | `BarWidget.qml` | the record dot; toggles the overlay |
 | `Overlay.qml` | the camera card and the HUD |
-| `SettingsStore.qml` | the settings file, the clock, sol, and the connection string |
+| `SettingsStore.qml` | the settings file, the clock, sol, and the hostname |
 | `SettingsView.qml` | the settings face of the card |
 | `Weather.qml` | current conditions, the first-run location guess, and city search |
 | `WeatherCodes.js` | WMO weather codes → HUD word and icon |
