@@ -91,8 +91,8 @@ Item {
   property string today: store.todayText()
   property string hostname: ""
 
-  // The recording counter. Recording is not implemented yet; this is the
-  // hook it will call once a take has been written.
+  // The recording counter, for the LOG ENTRY readout and each take's file
+  // name. Recording.qml calls this once a take has been written.
   function countEntry() {
     if (data.entrySol !== store.sol) {
       data.entrySol = store.sol

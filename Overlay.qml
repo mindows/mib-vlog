@@ -45,7 +45,6 @@ Item {
 
   readonly property string pluginId: (manifest && manifest.id) || "mib-vlog"
   readonly property color hud: "#f2f5f7"
-  readonly property color recordColor: "#e8413a"
   readonly property string hudFont: Style.font.family
 
 
@@ -242,7 +241,6 @@ Item {
         recording: recording
         cameraAvailable: root.cameraAvailable
         hudColor: root.hud
-        recordColor: root.recordColor
         hudFont: root.hudFont
         onSettingsRequested: root.settingsOpen = true
       }

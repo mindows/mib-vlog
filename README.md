@@ -10,8 +10,8 @@ under a translucent mission-status HUD.
   `left`, `center`, or `right` section of the bar. Clicking it toggles the
   panel. The dot is faded at standby and blinks slowly while recording.
 - **Overlay** — a 500x250 card at the top center of the screen. The front camera
-  fills the card; the HUD (MISSION DAY / SOL, the pressure, oxygen, and
-  temperature stack, LOG ENTRY, HAB > BUNKS) is drawn over it.
+  fills the card; the HUD (MISSION DAY / SOL, the weather, temperature, and
+  AQI stack, LOG ENTRY, HAB > BUNKS) is drawn over it.
 - **Click anywhere on the panel to close it.** `Esc` and `q` close it too.
   With settings → **Tap to record** on, a click on the preview starts or
   stops a take instead, and a click outside the card closes the panel
@@ -204,6 +204,7 @@ Disable or remove it with `omarchy plugin disable mib-vlog` /
 | `SettingsView.qml` | the settings face of the card |
 | `Weather.qml` | current conditions, the first-run location guess, and city search |
 | `WeatherCodes.js` | WMO weather codes → HUD word and icon |
+| `Plugin.js` | the plugin's folder on disk and the record red |
 | `locate.sh` | Wi-Fi / IP location guess |
 | `Recording.qml` | takes: start/stop, file naming, hand-off to finalize |
 | `prepare.sh` | creates the output folder and picks a free file name |

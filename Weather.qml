@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell.Io
+import "Plugin.js" as Plugin
 import "WeatherCodes.js" as WeatherCodes
 
 // Current conditions at the configured location, plus the two lookups the
@@ -33,10 +34,7 @@ Item {
   property bool searching: false
 
   readonly property bool hasLocation: store.locationName !== ""
-  readonly property string pluginDir: {
-    var url = String(Qt.resolvedUrl("."))
-    return decodeURIComponent(url.replace(/^file:\/\//, "")).replace(/\/$/, "")
-  }
+  readonly property string pluginDir: Plugin.dir()
 
   // ------------------------------------------------------------ conditions
 

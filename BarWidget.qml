@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Io
 import qs.Commons
 import qs.Ui
+import "Plugin.js" as Plugin
 
 // The bar half of MIB Vlog: a red record dot that toggles the vlog overlay.
 //
@@ -13,7 +14,7 @@ BarWidget {
   id: root
   moduleName: "mib-vlog"
 
-  readonly property color recordColor: "#e8413a"
+  readonly property color recordColor: Plugin.recordColor
 
   // Mirrors the panel's record marker: faded at standby, a slow blink while
   // a take is running. The panel is a separate component instance, so it

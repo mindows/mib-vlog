@@ -4,6 +4,7 @@ import QtQuick
 import QtMultimedia
 import Quickshell
 import Quickshell.Io
+import "Plugin.js" as Plugin
 
 // One take at a time, from the panel's camera and the system's current
 // default microphone.
@@ -60,10 +61,7 @@ Item {
   // What the take is, as metadata for its file; captured when it starts.
   property var takeInfo: ({})
 
-  readonly property string pluginDir: {
-    var url = String(Qt.resolvedUrl("."))
-    return decodeURIComponent(url.replace(/^file:\/\//, "")).replace(/\/$/, "")
-  }
+  readonly property string pluginDir: Plugin.dir()
 
   function toggle() {
     if (recording.active) recording.stop()
@@ -234,6 +232,9 @@ Item {
           return
         }
         if (recording.stopRequested) {
+          // prepare.sh has already made the snapshot folder; nothing else
+          // will ever clear it for a take that never started.
+          if (fields[3]) Quickshell.execDetached(["rm", "-rf", "--", fields[3]])
           recording.phase = "idle"
           return
         }

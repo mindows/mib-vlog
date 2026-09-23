@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Effects
 import QtQuick.Shapes
+import "Plugin.js" as Plugin
 
 // The mission HUD: every mark drawn over the camera — the readouts and their
 // rings, the side rules, the edge falloff, and (optionally) the record marker
@@ -26,7 +27,7 @@ Item {
   property bool cameraAvailable: true
 
   property color hudColor: "#f2f5f7"
-  property color recordColor: "#e8413a"
+  property color recordColor: Plugin.recordColor
   property string hudFont: "monospace"
 
   signal settingsRequested()
