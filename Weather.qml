@@ -26,6 +26,8 @@ Item {
   // Current air temperature in °C, NaN until the first answer. Always
   // fetched in Celsius so switching the display unit needs no refetch.
   property real temperatureC: NaN
+  // US AQI (0-500), NaN until the first answer.
+  property real aqi: NaN
 
   property var suggestions: []
   property bool searching: false
@@ -40,6 +42,7 @@ Item {
 
   function refresh() {
     if (!weather.hasLocation) return
+    weather.refreshAirQuality()
     if (conditions.running) { weather.refreshQueued = true; return }
     conditions.command = ["curl", "-fsS", "--max-time", "8",
       "https://api.open-meteo.com/v1/forecast"
@@ -50,6 +53,35 @@ Item {
   }
 
   property bool refreshQueued: false
+
+  // Air quality is a separate Open-Meteo service, polled alongside the
+  // conditions. A failed poll keeps the last reading.
+  function refreshAirQuality() {
+    if (airQuality.running) return
+    airQuality.command = ["curl", "-fsS", "--max-time", "8",
+      "https://air-quality-api.open-meteo.com/v1/air-quality"
+      + "?latitude=" + weather.store.latitude
+      + "&longitude=" + weather.store.longitude
+      + "&current=us_aqi"]
+    airQuality.running = true
+  }
+
+  Process {
+    id: airQuality
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        var current = null
+        try {
+          current = JSON.parse(text).current
+        } catch (e) {
+          current = null
+        }
+        if (current && current.us_aqi !== undefined && current.us_aqi !== null)
+          weather.aqi = Number(current.us_aqi)
+      }
+    }
+  }
 
   function applyConditions(text) {
     var current = null
@@ -115,6 +147,7 @@ Item {
     weather.label = ""
     weather.glyph = ""
     weather.temperatureC = NaN
+    weather.aqi = NaN
     weather.refresh()
   }
 

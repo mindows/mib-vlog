@@ -25,6 +25,7 @@ The camera is only active while the panel is open, so closing it releases
 | MISSION DAY, SOL, HAB, BUNKS, LOG ENTRY > WATNEY, TIME | editable labels, defaulting to the strings above |
 | `WEATHER` | current conditions (SUNNY, RAIN, OVERCAST, ...) at the configured location, with a matching icon in the circle; refreshed on open and every 15 minutes |
 | `TEMP` | current air temperature in °C or °F (a settings choice, °C by default), with the scale letter in the circle and its outline lit clockwise as a gauge: -10..50 °C, 0..130 °F. Updates with each weather fetch |
+| `AQI` | current US air quality index (0-500) from Open-Meteo, with a thumbs-up at 100 or under (good/moderate) and thumbs-down above; the circle is a 0-500 gauge. Updates with each weather fetch |
 | `SOL n` | whole days since the launch date, 0-based — launch day is sol 0 |
 | `TIME hh:mm` | the current time, 24-hour |
 | `host \| location` | this machine's hostname and the weather location |
@@ -56,8 +57,8 @@ omarchy-shell shell summon mib-vlog '{"settings":true}'
 ## Not implemented yet
 
 Recording. Nothing is written to disk and the microphone is never opened;
-the `STANDBY` marker in the corner says as much. The second TEMP
-readout (21.14) is still static placeholder text.
+the `STANDBY` marker in the corner says as much. Every readout on
+the feed is now live.
 
 ## Install
 

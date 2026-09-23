@@ -62,6 +62,11 @@ Item {
     return Math.max(0, Math.min(1, (temperature - low) / (high - low)))
   }
 
+  // Up while the air is within the US AQI's good and moderate bands (0-100),
+  // down once it reaches "unhealthy for sensitive groups" and beyond.
+  readonly property string airQualityGlyph: isNaN(weather.aqi) ? ""
+    : (weather.aqi <= 100 ? "󰔓" : "󰔑")
+
   // Log entries read as an index on the feed, so they keep three digits.
   readonly property string paddedEntry: {
     var text = String(Math.max(0, store.entryCount))
@@ -150,45 +155,6 @@ Item {
     font.family: root.hudFont
     font.pixelSize: Math.round(24 * root.hudScale)
     font.letterSpacing: Math.round(1 * root.hudScale)
-  }
-
-  // Label over value, with the unit in a hairline circle beside the number —
-  // the pressure/oxygen/temperature stack down the left edge.
-  component StatBlock: Column {
-    property alias caption: captionText.text
-    property alias value: valueText.text
-    property string unit: ""
-    // Negative: the caption's line box already leaves air under the word, so
-    // closing it pulls the number up under its own label and buys the gaps
-    // above the stack and below it.
-    spacing: Math.round(-5 * root.hudScale)
-
-    HudCaption { id: captionText }
-
-    Row {
-      spacing: Math.round(10 * root.hudScale)
-
-      HudReadout { id: valueText; anchors.verticalCenter: parent.verticalCenter }
-
-      Rectangle {
-        anchors.verticalCenter: parent.verticalCenter
-        width: Math.round(22 * root.hudScale)
-        height: width
-        radius: width / 2
-        color: "transparent"
-        border.width: Math.max(1, Math.round(1.2 * root.hudScale))
-        border.color: Qt.rgba(root.hud.r, root.hud.g, root.hud.b, 0.55)
-
-        Text {
-          anchors.centerIn: parent
-          text: unit
-          color: root.hud
-          opacity: 0.8
-          font.family: root.hudFont
-          font.pixelSize: Math.round(10 * root.hudScale)
-        }
-      }
-    }
   }
 
   // The pair of hairlines running down the inside of the frame, each with a
@@ -464,7 +430,12 @@ Item {
             symbol: store.tempUnit
             fill: root.temperatureFill
           }
-          StatBlock { caption: "Temp"; value: "21.14"; unit: "C" }
+          RingBlock {
+          caption: "AQI"
+          value: isNaN(weather.aqi) ? "--" : String(Math.round(weather.aqi))
+          symbol: root.airQualityGlyph
+          fill: isNaN(weather.aqi) ? 0 : Math.max(0, Math.min(1, weather.aqi / 500))
+        }
 
           HudCaption {
             text: "Environment"
