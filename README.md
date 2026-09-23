@@ -67,9 +67,10 @@ the preview — to start a take: the label becomes
 **RECORDING** and the dot blinks. Click again to stop — or just close the
 panel, which stops and saves the take too.
 
-Takes are saved to the output folder (default `~/mib-vlogs`, created on
-demand; change it in settings) as `YYYYMMDD-<sol>-<seq>.mp4`, e.g.
-`20260922-0-000.mp4`, where `<seq>` is the log index on the feed. If the name
+Takes are saved to a folder per month under the output folder (default
+`~/mib-vlogs`, created on demand; change it in settings) as
+`YYYYMM/YYYYMMDD-<sol>-<seq>.mp4`, e.g. `~/mib-vlogs/202609/20260922-0-000.mp4`
+(its transcript, if on, beside it as `.md`), where `<seq>` is the log index on the feed. If the name
 is taken, `-1`, `-2`, ... is appended.
 
 - Video is the panel's 2:1 frame (1280x640: the camera with its top cut off

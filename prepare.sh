@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Reserve a recording's file names.
 #
-#   prepare.sh <output-dir> <base>
+#   prepare.sh <output-root> <base>
 #
-# Creates the output directory, then prints four tab-separated fields: the
+# Takes are filed by month: <output-root>/YYYYMM/, the month taken from the
+# base name (YYYYMMDD-...) so folder and file always agree. Creates that
+# directory, then prints four tab-separated fields: the
 # final <base>.mp4 — or <base>-1.mp4, <base>-2.mp4, ... when that is taken —
 # the hidden file the recorder writes to until the take is finished, the
 # system's current default microphone (a PipeWire source name, possibly
@@ -12,8 +14,9 @@
 
 set -euo pipefail
 
-dir=$1
+root=$1
 base=$2
+dir="$root/${base:0:6}"
 
 mkdir -p "$dir"
 
