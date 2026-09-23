@@ -193,6 +193,10 @@ Item {
     property string symbol: ""
     // 0..1 lights that much of the outline; negative means no gauge.
     property real fill: -1
+    // Stacked blocks share the widest caption/value width, so their circles
+    // line up in one column instead of stepping in with each value's width.
+    property real textWidth: 0
+    readonly property real naturalTextWidth: Math.max(ringCaption.implicitWidth, ringValue.implicitWidth)
 
     readonly property bool gauge: fill >= 0
     readonly property real strokeWidth: Math.max(1, Math.round(1.2 * root.hudScale))
@@ -202,6 +206,7 @@ Item {
 
     Column {
       anchors.verticalCenter: parent.verticalCenter
+      width: Math.max(ringBlock.naturalTextWidth, ringBlock.textWidth)
       spacing: Math.round(-5 * root.hudScale)
 
       HudCaption { id: ringCaption; text: ringBlock.caption }
@@ -414,30 +419,44 @@ Item {
         // ------------------------------------------- environment stack (left)
 
         Column {
+          id: stack
           x: header.x
           y: Math.round(card.height * 0.25)
           spacing: Math.round(10 * root.hudScale)
 
+          readonly property real ringTextWidth: Math.max(weatherBlock.naturalTextWidth,
+            tempBlock.naturalTextWidth, aqiBlock.naturalTextWidth)
+
           RingBlock {
+            id: weatherBlock
+            textWidth: stack.ringTextWidth
             caption: "Weather"
             value: weather.status || weather.label || "--"
             symbol: weather.glyph
           }
 
           RingBlock {
+            id: tempBlock
+            textWidth: stack.ringTextWidth
             caption: "Temp"
             value: root.temperatureText
             symbol: store.tempUnit
             fill: root.temperatureFill
           }
+
           RingBlock {
-          caption: "AQI"
-          value: isNaN(weather.aqi) ? "--" : String(Math.round(weather.aqi))
-          symbol: root.airQualityGlyph
-          fill: isNaN(weather.aqi) ? 0 : Math.max(0, Math.min(1, weather.aqi / 500))
-        }
+            id: aqiBlock
+            textWidth: stack.ringTextWidth
+            caption: "AQI"
+            value: isNaN(weather.aqi) ? "--" : String(Math.round(weather.aqi))
+            symbol: root.airQualityGlyph
+            fill: isNaN(weather.aqi) ? 0 : Math.max(0, Math.min(1, weather.aqi / 500))
+          }
 
           HudCaption {
+            // A little extra air above: the rings are taller than the text
+            // they sit beside.
+            topPadding: Math.round(5 * root.hudScale)
             text: "Environment"
             opacity: 0.6
           }
@@ -469,7 +488,9 @@ Item {
           id: footer
           x: header.x
           anchors { bottom: parent.bottom; bottomMargin: Math.round(20 * root.hudScale) }
-          spacing: Math.round(4 * root.hudScale)
+          // Negative: HAB's line box carries descender room its capitals
+          // never use, so it can sit closer to the line below.
+          spacing: Math.round(-1 * root.hudScale)
 
           Row {
             spacing: Math.round(9 * root.hudScale)
