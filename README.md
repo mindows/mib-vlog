@@ -118,19 +118,25 @@ Each file carries the take's details, as they stood when it started:
 | Tag | Example |
 |---|---|
 | `title` | `LOG ENTRY > WATNEY #013` |
-| `comment` | `SOL 0 \| Sunnyvale, California, United States \| Clear 57.6 °F \| AQI 46` |
+| `comment` | `SOL 0 \| Houston, Texas, United States \| Clear 84.2 °F \| AQI 46` |
 | `creation_time` | start, UTC, whole seconds |
 | `com.apple.quicktime.creationdate` | start, local time with offset |
-| `com.apple.quicktime.location.ISO6709` | `+37.3688-122.0364/` |
+| `com.apple.quicktime.location.ISO6709` | `+29.7604-95.3698/` |
 | `mibvlog.start`, `mibvlog.duration`, `mibvlog.duration_seconds` | `2026-09-22T21:45:44-07:00`, `00:00:04`, `4.124` |
 | `mibvlog.location`, `mibvlog.latitude`, `mibvlog.longitude` | place name and coordinates |
-| `mibvlog.hostname`, `mibvlog.weather`, `mibvlog.temperature`, `mibvlog.aqi` | `mib1`, `Clear`, `57.6 °F`, `46` |
+| `mibvlog.hostname`, `mibvlog.weather`, `mibvlog.temperature`, `mibvlog.aqi` | `my-laptop`, `Clear`, `84.2 °F`, `46` |
 | `mibvlog.sol`, `mibvlog.log_entry` | `0`, `013` |
 
 The creation date and ISO 6709 location are the keys photo libraries read.
 See them all with `ffprobe -show_entries format_tags <file>`. (ffprobe
 lists `creation_time` twice — the MP4 header keeps its own copy — and both
 name the same second.)
+
+These tags include the weather location's coordinates and this machine's
+hostname. When the location came from the first-run Wi-Fi guess, the
+coordinates can be close to where you are. Strip them before sharing a take
+publicly, e.g. `ffmpeg -i in.mp4 -map_metadata -1 -c copy out.mp4`, or set
+the location to a city with the settings search.
 
 ### Noise reduction
 
@@ -162,7 +168,7 @@ omarchy-shell shell call mib-vlog toggleRecording ""
 ## Install
 
 ```bash
-git clone <this repo> ~/.config/omarchy/plugins/mib-vlog
+git clone https://github.com/mindows/mib-vlog.git ~/.config/omarchy/plugins/mib-vlog
 omarchy-shell shell rescanPlugins
 omarchy plugin enable mib-vlog
 ```
@@ -209,3 +215,7 @@ Disable or remove it with `omarchy plugin disable mib-vlog` /
 | `Recording.qml` | takes: start/stop, file naming, hand-off to finalize |
 | `prepare.sh` | creates the output folder and picks a free file name |
 | `finalize.sh` | joins a take's picture and sound, re-encodes, and moves it to its final name |
+
+## License
+
+[MIT](LICENSE)
