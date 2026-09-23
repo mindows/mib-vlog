@@ -26,6 +26,11 @@
 # standard creation date and ISO 6709 location that photo libraries read,
 # a title and one-line summary for players, and every field under mibvlog.*.
 #
+# Once the video is saved, its sound is transcribed with voxtype (Omarchy's
+# local Whisper, using whatever model voxtype is configured for) into a
+# Markdown file beside it: <final> with .md for .mp4. Without voxtype, or
+# for a take with no sound, there is no transcript.
+#
 # With "denoise", the sound is cleaned of steady background noise — the hiss
 # and rumble of a laptop fan next to a built-in mic: a high-pass below 90 Hz
 # for the rumble, then FFT noise reduction that tracks the noise floor. On a
@@ -177,4 +182,42 @@ fi
 
 if command -v notify-send >/dev/null; then
   notify-send -a "MIB Vlog" "Log entry saved" "$(basename "$final")"
+fi
+
+# Whatever voxtype says after its "Processing N samples" line is the text.
+transcribe() {
+  local wav
+  wav=$(mktemp --suffix .wav) || return 1
+  ffmpeg -v error -y -i "$final" -vn -ac 1 -ar 16000 -c:a pcm_s16le "$wav" &&
+    voxtype -q transcribe "$wav" 2>/dev/null |
+    awk 'found { print; next } /^Processing [0-9]+ samples/ { found = 1 }' |
+      sed -e '/./,$!d' -e :a -e '/^\n*$/{$d;N;ba' -e '}'
+  local status=$?
+  rm -f "$wav"
+  return $status
+}
+
+# A heading and one line of context from the take's metadata, then the text.
+write_transcript() {
+  local text=$1 transcript=${final%.mp4}.md length
+  length=$(duration "$final")
+  {
+    jq -r --arg length "${length:-0}" '
+      def when: (.startLocal // "") | sub("T"; " ") | .[0:16];
+      "# \(.title // "Log entry")\n",
+      ([when, (if .sol then "SOL " + .sol else "" end), (.location // ""),
+        ($length | tonumber | . * 10 | round / 10 | tostring) + " s"]
+        | map(select(. != "")) | join(" · ")),
+      ""
+    ' <<<"$take_json" 2>/dev/null || printf '# Log entry\n\n'
+    if [[ -n $text ]]; then
+      printf '%s\n' "$text"
+    else
+      printf '_No speech detected._\n'
+    fi
+  } >"$transcript"
+}
+
+if $have_audio && command -v voxtype >/dev/null; then
+  text=$(transcribe) && write_transcript "$text"
 fi

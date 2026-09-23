@@ -97,6 +97,16 @@ is taken, `-1`, `-2`, ... is appended.
   play. A notification says when the file is saved.
 - The microphone is opened only during a take.
 
+### Transcript
+
+After the video is saved, its sound is transcribed with **voxtype** (Omarchy's
+local Whisper, using the model voxtype is configured for) into a Markdown
+file beside it — `20260922-0-013.md` next to `20260922-0-013.mp4`: a heading
+with the log entry, a line with the start time, sol, place, and length, then
+the text (or _No speech detected._). It runs after the file is saved and
+the notification is sent, and needs `voxtype` installed; without it there is
+no transcript.
+
 ### Metadata
 
 Each file carries the take's details, as they stood when it started:
@@ -176,6 +186,7 @@ Disable or remove it with `omarchy plugin disable mib-vlog` /
 - `ffmpeg` to join and re-encode takes (without it the picture is kept as
   recorded, without sound)
 - `pw-record` and `pactl` (PipeWire) for the sound
+- `voxtype` for transcripts (optional)
 
 ## Layout
 
