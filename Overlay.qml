@@ -43,7 +43,7 @@ Item {
     live: root.opened
   }
 
-  readonly property string pluginId: (manifest && manifest.id) || "mib-vlog"
+  readonly property string pluginId: (manifest && manifest.id) || "io.github.mindows.mib-vlog"
   readonly property color hud: "#f2f5f7"
   readonly property string hudFont: Style.font.family
 
@@ -58,7 +58,7 @@ Item {
 
   // `{"settings": true}` opens straight onto the settings face, which is how
   // the panel is driven from a script:
-  //   omarchy-shell shell summon mib-vlog '{"settings":true}'
+  //   omarchy-shell shell summon io.github.mindows.mib-vlog '{"settings":true}'
   function open(payloadJson) {
     var payload = ({})
     try {
@@ -85,7 +85,7 @@ Item {
   }
 
   // Starts or stops a take while the panel is open, for a keybinding:
-  //   omarchy-shell shell call mib-vlog toggleRecording ""
+  //   omarchy-shell shell call io.github.mindows.mib-vlog toggleRecording ""
   function toggleRecording() {
     if (!root.opened) return "closed"
     recording.toggle()

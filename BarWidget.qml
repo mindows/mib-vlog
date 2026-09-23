@@ -12,7 +12,7 @@ import "Plugin.js" as Plugin
 // do not inject one.
 BarWidget {
   id: root
-  moduleName: "mib-vlog"
+  moduleName: "io.github.mindows.mib-vlog"
 
   readonly property color recordColor: Plugin.recordColor
 

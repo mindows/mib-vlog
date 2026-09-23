@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "mib-vlog",
+  "id": "io.github.mindows.mib-vlog",
   "name": "MIB Vlog",
   "version": "1.0.0",
   "author": "Min Kim",

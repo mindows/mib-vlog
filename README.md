@@ -57,7 +57,7 @@ at sol 0. Editing the file by hand works too; the panel reloads on change.
 To open straight onto the settings face:
 
 ```bash
-omarchy-shell shell summon mib-vlog '{"settings":true}'
+omarchy-shell shell summon io.github.mindows.mib-vlog '{"settings":true}'
 ```
 
 ## Recording
@@ -166,31 +166,45 @@ amixer -c 0 sset 'Internal Mic Boost' 0
 Start or stop a take from a script or keybinding while the panel is open:
 
 ```bash
-omarchy-shell shell call mib-vlog toggleRecording ""
+omarchy-shell shell call io.github.mindows.mib-vlog toggleRecording ""
 ```
 
 ## Install
 
 ```bash
-git clone https://github.com/mindows/mib-vlog.git ~/.config/omarchy/plugins/mib-vlog
-omarchy-shell shell rescanPlugins
-omarchy plugin enable mib-vlog
+omarchy plugin add https://github.com/mindows/mib-vlog.git --enable
 ```
 
-The widget lands in the bar's right section. Move it with:
+This clones the plugin into `~/.config/omarchy/plugins/io.github.mindows.mib-vlog/` and adds the
+widget to the bar's right section (it asks which section in a terminal).
+Leave off `--enable` to read the code before turning it on with
+`omarchy plugin enable io.github.mindows.mib-vlog`.
+
+Move the widget with:
 
 ```bash
-omarchy bar move mib-vlog --section left     # or center, right
+omarchy bar move io.github.mindows.mib-vlog --section left     # or center, right
 ```
 
 Toggle the panel without the bar:
 
 ```bash
-omarchy-shell shell toggle mib-vlog
+omarchy-shell shell toggle io.github.mindows.mib-vlog
 ```
 
-Disable or remove it with `omarchy plugin disable mib-vlog` /
-`omarchy plugin remove mib-vlog`.
+Update it with `omarchy plugin update io.github.mindows.mib-vlog`, which shows the changes before
+applying them.
+
+## Remove
+
+```bash
+omarchy plugin remove io.github.mindows.mib-vlog
+```
+
+This removes the plugin and its bar entry. `omarchy plugin disable io.github.mindows.mib-vlog`
+turns it off but keeps it installed. Your settings
+(`~/.config/mib-vlog/`) and recordings (`~/mib-vlogs/` by default) are left
+in place; delete them yourself if you no longer want them.
 
 ## Requirements
 

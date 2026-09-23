@@ -20,8 +20,8 @@ qs log -p /usr/share/omarchy/shell | grep -i mib-vlog
 2. Point Omarchy at your clone instead of an installed copy:
 
    ```bash
-   ln -sfn "$PWD" ~/.config/omarchy/plugins/mib-vlog
-   omarchy plugin enable mib-vlog
+   ln -sfn "$PWD" ~/.config/omarchy/plugins/io.github.mindows.mib-vlog
+   omarchy plugin enable io.github.mindows.mib-vlog
    ```
 
 3. After each change, restart the shell with `omarchy-restart-shell`.
