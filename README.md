@@ -1,5 +1,7 @@
 # MIB Vlog
 
+![MIB Vlog panel: the front camera under the mission HUD](preview.png)
+
 An Omarchy shell plugin: a red record dot on the status bar that opens a
 Mars-mission style vlog panel — your front camera live in the background,
 under a translucent mission-status HUD.
