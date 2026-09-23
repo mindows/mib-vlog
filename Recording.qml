@@ -28,6 +28,8 @@ Item {
   id: recording
 
   required property var store
+  // Conditions at the start of a take, for the file's metadata.
+  property var weather: null
   // The item snapshotted for the burned-in HUD.
   property var hudSource: null
 
@@ -55,6 +57,8 @@ Item {
   property real startedAt: 0
   // Seconds into the take at which each snapshot takes over, in file order.
   property var hudOffsets: []
+  // What the take is, as metadata for its file; captured when it starts.
+  property var takeInfo: ({})
 
   readonly property string pluginDir: {
     var url = String(Qt.resolvedUrl("."))
@@ -141,7 +145,52 @@ Item {
       recording.partialPath, recording.audioPath, recording.finalPath,
       recording.store.noiseReduction ? "denoise" : "",
       recording.hudDir, recording.hudOffsets.join(","),
-      recording.store.mirrorVideo ? "mirror" : ""])
+      recording.store.mirrorVideo ? "mirror" : "",
+      JSON.stringify(recording.takeInfo)])
+  }
+
+  // ISO 8601 in local time with its UTC offset, e.g. 2026-09-22T21:16:50-07:00.
+  function localIso(date) {
+    function pad(n) { return (n < 10 ? "0" : "") + n }
+    var offset = -date.getTimezoneOffset()
+    var sign = offset >= 0 ? "+" : "-"
+    offset = Math.abs(offset)
+    return Qt.formatDateTime(date, "yyyy-MM-ddTHH:mm:ss")
+      + sign + pad(Math.floor(offset / 60)) + ":" + pad(offset % 60)
+  }
+
+  // The take's metadata, as it stands at the start: where, on what, in what
+  // weather, and when. finalize.sh adds the duration.
+  function describeTake() {
+    var store = recording.store
+    var weather = recording.weather
+    var start = new Date(recording.startedAt)
+    var seq = String(store.entryCount)
+    while (seq.length < 3) seq = "0" + seq
+
+    var temperature = ""
+    if (weather && !isNaN(weather.temperatureC)) {
+      var value = store.tempUnit === "F" ? weather.temperatureC * 9 / 5 + 32 : weather.temperatureC
+      temperature = value.toFixed(1) + " °" + store.tempUnit
+    }
+    var aqi = weather && !isNaN(weather.aqi) ? String(Math.round(weather.aqi)) : ""
+    var conditions = weather ? weather.label : ""
+    var hasPlace = store.locationName !== ""
+
+    return {
+      title: store.logLabel + " #" + seq,
+      startUtc: start.toISOString(),
+      startLocal: recording.localIso(start),
+      location: store.locationName,
+      latitude: hasPlace ? store.latitude : null,
+      longitude: hasPlace ? store.longitude : null,
+      hostname: store.hostname,
+      weather: conditions,
+      temperature: temperature,
+      aqi: aqi,
+      sol: String(store.sol),
+      logEntry: seq
+    }
   }
 
   // Saves the HUD as it looks now, to take over at `offset` seconds.
@@ -238,6 +287,7 @@ Item {
       if (rec.recorderState === MediaRecorder.RecordingState) {
         recording.phase = "recording"
         recording.startedAt = Date.now()
+        recording.takeInfo = recording.describeTake()
         recording.snapshot(0)
       }
       else if (rec.recorderState === MediaRecorder.StoppedState) recording.videoStopped()

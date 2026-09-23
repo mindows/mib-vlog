@@ -116,6 +116,7 @@ Item {
   Recording {
     id: recording
     store: store
+    weather: weather
     hudSource: exportHud
   }
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Join a finished take's parts into its final file.
 #
-#   finalize.sh <video> <audio> <final> [denoise] [hud-dir] [hud-offsets] [mirror]
+#   finalize.sh <video> <audio> <final> [denoise] [hud-dir] [hud-offsets] [mirror] [take-json]
 #
 # <video> is Qt's recording (picture only) and <audio> is pw-record's WAV.
 # They were started a moment apart but stopped together, so they are lined
@@ -21,6 +21,11 @@
 # 8-bit 4:2:0 plays anywhere. If ffmpeg is missing or fails, the raw video
 # is kept under the final name rather than lost.
 #
+# <take-json> describes the take (start time, place, host, conditions) and
+# is written into the file's metadata, with the duration added here: the
+# standard creation date and ISO 6709 location that photo libraries read,
+# a title and one-line summary for players, and every field under mibvlog.*.
+#
 # With "denoise", the sound is cleaned of steady background noise — the hiss
 # and rumble of a laptop fan next to a built-in mic: a high-pass below 90 Hz
 # for the rumble, then FFT noise reduction that tracks the noise floor. On a
@@ -36,6 +41,7 @@ denoise=${4:-}
 hud_dir=${5:-}
 hud_offsets=${6:-}
 mirror=${7:-}
+take_json=${8:-"{}"}
 
 duration() {
   ffprobe -v error -show_entries format=duration -of csv=p=0 "$1" 2>/dev/null
@@ -74,6 +80,45 @@ hud_list() {
   echo "$list"
 }
 
+# -metadata arguments for the take, one per line (key=value). Empty fields
+# are left out.
+take_metadata() {
+  local length
+  length=$(duration "$video")
+  jq -r --argjson seconds "${length:-0}" '
+    def two: tostring | if length < 2 then "0" + . else . end;
+    # ISO 6709 coordinate: signed degrees to four decimals (about 10 m).
+    def coord: (if . >= 0 then "+" else "" end) + (. * 10000 | round / 10000 | tostring);
+    def put($key; $value): if ($value // "") == "" then empty else "\($key)=\($value)" end;
+
+    ($seconds | floor) as $whole
+    | "\($whole / 3600 | floor | two):\($whole % 3600 / 60 | floor | two):\($whole % 60 | two)" as $hms
+    | (.latitude != null and .longitude != null) as $placed
+    | ([.weather, .temperature] | map(select(. != "")) | join(" ")) as $conditions
+    | put("title"; .title),
+      # Whole seconds: the MP4 header keeps its own whole-second copy of this,
+      # and ffprobe shows both, so they should name the same instant.
+      put("creation_time"; .startUtc | sub("\\.[0-9]+Z$"; "Z")),
+      put("com.apple.quicktime.creationdate"; .startLocal),
+      put("com.apple.quicktime.location.ISO6709";
+        if $placed then (.latitude | coord) + (.longitude | coord) + "/" else "" end),
+      put("comment"; ["SOL " + .sol, .location, $conditions, (if .aqi != "" then "AQI " + .aqi else "" end)]
+        | map(select(. != "")) | join(" | ")),
+      put("mibvlog.start"; .startLocal),
+      put("mibvlog.duration"; $hms),
+      put("mibvlog.duration_seconds"; $seconds * 1000 | round / 1000 | tostring),
+      put("mibvlog.location"; .location),
+      put("mibvlog.latitude"; if $placed then .latitude | tostring else "" end),
+      put("mibvlog.longitude"; if $placed then .longitude | tostring else "" end),
+      put("mibvlog.hostname"; .hostname),
+      put("mibvlog.weather"; .weather),
+      put("mibvlog.temperature"; .temperature),
+      put("mibvlog.aqi"; .aqi),
+      put("mibvlog.sol"; .sol),
+      put("mibvlog.log_entry"; .logEntry)
+  ' <<<"$take_json" 2>/dev/null
+}
+
 encode() {
   local inputs=(-i "$video") audio_out=() next=1
   if $have_audio; then
@@ -107,9 +152,16 @@ encode() {
     out="[burned]"
   fi
 
+  local metadata=() line
+  while IFS= read -r line; do
+    [[ -n $line ]] && metadata+=(-metadata "$line")
+  done < <(take_metadata)
+
+  # -map_metadata -1: only the take's own tags, not the raw inputs'.
   ffmpeg -n -loglevel error "${inputs[@]}" -filter_complex "$filter" \
     -map "$out" -c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p \
-    "${audio_out[@]}" -movflags +faststart -shortest "$final"
+    "${audio_out[@]}" -map_metadata -1 "${metadata[@]}" \
+    -movflags +faststart+use_metadata_tags -shortest "$final"
 }
 
 if command -v ffmpeg >/dev/null && encode; then
