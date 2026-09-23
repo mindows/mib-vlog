@@ -15,6 +15,10 @@
 
 set -uo pipefail
 
+# Every request goes through fetch.sh, which caps how much of an answer is
+# read before jq sees it.
+fetch="$(dirname "$0")/fetch.sh"
+
 version=$(jq -r '.version // empty' "$(dirname "$0")/manifest.json" 2>/dev/null)
 UA="mib-vlog/${version:-0} (+https://github.com/mindows/mib-vlog)"
 
@@ -39,15 +43,15 @@ from_beacondb() {
   local aps
   aps=$(access_points)
   [[ -n $aps ]] || aps="[]"
-  curl -fsS --max-time 8 -A "$UA" -H 'Content-Type: application/json' \
-    -d "{\"considerIp\":true,\"wifiAccessPoints\":$aps}" \
-    https://api.beacondb.net/v1/geolocate 2>/dev/null |
+  bash "$fetch" 8 https://api.beacondb.net/v1/geolocate \
+    -A "$UA" -H 'Content-Type: application/json' \
+    -d "{\"considerIp\":true,\"wifiAccessPoints\":$aps}" |
     jq -ec '{latitude: .location.lat, longitude: .location.lng,
              source: (if .fallback then "ip" else "wifi" end)}' 2>/dev/null
 }
 
 from_ipinfo() {
-  curl -fsS --max-time 6 -A "$UA" https://ipinfo.io/json 2>/dev/null |
+  bash "$fetch" 6 https://ipinfo.io/json -A "$UA" |
     jq -ec '(.loc | split(",")) as $ll
             | {latitude: ($ll[0] | tonumber), longitude: ($ll[1] | tonumber),
                name: ([.city, .region, .country] | map(select(. != null and . != "")) | join(", ")),
@@ -55,8 +59,9 @@ from_ipinfo() {
 }
 
 place_name() {
-  curl -fsS --max-time 6 -A "$UA" \
-    "https://nominatim.openstreetmap.org/reverse?lat=$1&lon=$2&format=jsonv2&zoom=10&accept-language=en" 2>/dev/null |
+  bash "$fetch" 6 \
+    "https://nominatim.openstreetmap.org/reverse?lat=$1&lon=$2&format=jsonv2&zoom=10&accept-language=en" \
+    -A "$UA" |
     jq -er '.address
             | [(.city // .town // .village // .hamlet // .county), .state, .country]
             | map(select(. != null and . != "")) | join(", ")

@@ -230,6 +230,7 @@ in place; delete them yourself if you no longer want them.
 | `WeatherCodes.js` | WMO weather codes → HUD word and icon |
 | `Plugin.js` | the plugin's folder on disk and the record red |
 | `locate.sh` | Wi-Fi / IP location guess |
+| `fetch.sh` | every network request: curl with a deadline and a 64 KiB ceiling on the answer |
 | `Recording.qml` | takes: start/stop, file naming, hand-off to finalize |
 | `prepare.sh` | creates the output folder and picks a free file name |
 | `finalize.sh` | joins a take's picture and sound, re-encodes, and moves it to its final name |

@@ -11,7 +11,8 @@ import "WeatherCodes.js" as WeatherCodes
 //
 // Everything goes over curl to keyless services, the way Omarchy's own
 // weather widget does it: Open-Meteo for conditions and city search, and
-// locate.sh (BeaconDB, ipinfo.io, Nominatim) for the first guess.
+// locate.sh (BeaconDB, ipinfo.io, Nominatim) for the first guess. Each
+// request runs through fetch.sh, which caps how much of an answer is read.
 Item {
   id: weather
 
@@ -42,7 +43,7 @@ Item {
     if (!weather.hasLocation) return
     weather.refreshAirQuality()
     if (conditions.running) { weather.refreshQueued = true; return }
-    conditions.command = ["curl", "-fsS", "--max-time", "8",
+    conditions.command = ["bash", weather.pluginDir + "/fetch.sh", "8",
       "https://api.open-meteo.com/v1/forecast"
       + "?latitude=" + weather.store.latitude
       + "&longitude=" + weather.store.longitude
@@ -56,7 +57,7 @@ Item {
   // conditions. A failed poll keeps the last reading.
   function refreshAirQuality() {
     if (airQuality.running) return
-    airQuality.command = ["curl", "-fsS", "--max-time", "8",
+    airQuality.command = ["bash", weather.pluginDir + "/fetch.sh", "8",
       "https://air-quality-api.open-meteo.com/v1/air-quality"
       + "?latitude=" + weather.store.latitude
       + "&longitude=" + weather.store.longitude
@@ -215,7 +216,7 @@ Item {
   function runSearch() {
     if (geocoder.running || !weather.pendingQuery) return
     weather.activeQuery = weather.pendingQuery
-    geocoder.command = ["curl", "-fsS", "--max-time", "5",
+    geocoder.command = ["bash", weather.pluginDir + "/fetch.sh", "5",
       "https://geocoding-api.open-meteo.com/v1/search?name="
       + encodeURIComponent(weather.activeQuery) + "&count=6&language=en&format=json"]
     geocoder.running = true
