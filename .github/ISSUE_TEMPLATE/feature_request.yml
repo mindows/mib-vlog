@@ -1,0 +1,16 @@
+name: Feature request
+description: Suggest something MIB Vlog should do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you want to do
+      description: What you are trying to do and what gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How it could work
+      description: Optional. A sketch of the setting, HUD change, or behaviour you have in mind.

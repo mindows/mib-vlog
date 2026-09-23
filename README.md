@@ -220,6 +220,11 @@ Disable or remove it with `omarchy plugin disable mib-vlog` /
 | `prepare.sh` | creates the output folder and picks a free file name |
 | `finalize.sh` | joins a take's picture and sound, re-encodes, and moves it to its final name |
 
+## Contributing
+
+Bug reports, ideas, and pull requests are welcome — see
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## License
 
 [MIT](LICENSE)

@@ -1,0 +1,46 @@
+name: Bug report
+description: Something in MIB Vlog doesn't work as described
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the panel from the bar
+        2. Click STANDBY
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Plugin version
+      description: The `version` in `manifest.json`, or the commit you are on (`git -C ~/.config/omarchy/plugins/mib-vlog rev-parse --short HEAD`).
+    validations:
+      required: true
+  - type: input
+    id: omarchy
+    attributes:
+      label: Omarchy version
+      description: Output of `omarchy version`.
+  - type: textarea
+    id: hardware
+    attributes:
+      label: Camera and microphone
+      description: Only if the bug is about recording, e.g. "built-in laptop webcam, built-in mic" or a USB model.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Shell log
+      description: |
+        Lines from `qs log -p /usr/share/omarchy/shell | grep -i mib-vlog`.
+        Remove anything you'd rather not share, such as your location or hostname.
+      render: text
