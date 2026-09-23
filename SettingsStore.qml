@@ -36,6 +36,8 @@ Item {
   readonly property string locationName: data.locationName
   readonly property real latitude: data.latitude
   readonly property real longitude: data.longitude
+  // "C" or "F", for the TEMP readout.
+  readonly property string tempUnit: data.tempUnit === "F" ? "F" : "C"
 
   // True once the settings file has been read (or found missing) and its
   // directory exists — the point at which defaults can be written without
@@ -89,6 +91,13 @@ Item {
     data.locationName = String(name)
     data.latitude = Number(latitude)
     data.longitude = Number(longitude)
+    store.save()
+  }
+
+  function setTempUnit(unit) {
+    var next = unit === "F" ? "F" : "C"
+    if (data.tempUnit === next) return
+    data.tempUnit = next
     store.save()
   }
 
@@ -152,6 +161,7 @@ Item {
       property string locationName: ""
       property real latitude: 0
       property real longitude: 0
+      property string tempUnit: "C"
     }
   }
 

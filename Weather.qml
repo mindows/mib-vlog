@@ -23,6 +23,9 @@ Item {
   property string glyph: ""
   // What to show instead of a condition: "Locating", "No signal", ...
   property string status: ""
+  // Current air temperature in °C, NaN until the first answer. Always
+  // fetched in Celsius so switching the display unit needs no refetch.
+  property real temperatureC: NaN
 
   property var suggestions: []
   property bool searching: false
@@ -42,7 +45,7 @@ Item {
       "https://api.open-meteo.com/v1/forecast"
       + "?latitude=" + weather.store.latitude
       + "&longitude=" + weather.store.longitude
-      + "&current=weather_code,is_day"]
+      + "&current=weather_code,is_day,temperature_2m"]
     conditions.running = true
   }
 
@@ -64,6 +67,8 @@ Item {
     var described = WeatherCodes.describe(current.weather_code, current.is_day)
     weather.label = described.label
     weather.glyph = described.glyph
+    weather.temperatureC = current.temperature_2m === undefined || current.temperature_2m === null
+      ? NaN : Number(current.temperature_2m)
     weather.status = ""
   }
 
@@ -109,6 +114,7 @@ Item {
   function refetch() {
     weather.label = ""
     weather.glyph = ""
+    weather.temperatureC = NaN
     weather.refresh()
   }
 

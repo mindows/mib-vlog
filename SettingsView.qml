@@ -26,6 +26,7 @@ FocusScope {
     { key: "solLabel", label: "Sol", hint: "SOL" },
     { key: "launchDate", label: "Launch date", hint: "YYYY-MM-DD" },
     { key: "locationName", label: "Location", hint: "CITY, STATE, COUNTRY", search: true },
+    { key: "tempUnit", label: "Temp unit", choices: ["C", "F"] },
     { key: "habLabel", label: "Hab", hint: "HAB" },
     { key: "locationLabel", label: "Room", hint: "BUNKS" },
     { key: "logLabel", label: "Log entry", hint: "LOG ENTRY > WATNEY" },
@@ -129,9 +130,69 @@ FocusScope {
           font.capitalization: Font.AllUppercase
         }
 
+        readonly property bool isChoice: !!row.modelData.choices
+
+        // A pick-one row: the options side by side, the chosen one boxed.
+        // Tab reaches it like a field; arrows or space switch it.
+        Row {
+          id: choice
+          visible: row.isChoice
+          anchors { left: rowLabel.right; verticalCenter: parent.verticalCenter }
+          spacing: Math.round(6 * view.hudScale)
+          activeFocusOnTab: row.isChoice
+
+          readonly property string current: row.isChoice ? String(view.store[row.modelData.key]) : ""
+
+          function step() {
+            var options = row.modelData.choices
+            var next = options[(options.indexOf(choice.current) + 1) % options.length]
+            view.store.setTempUnit(next)
+          }
+
+          Keys.onSpacePressed: choice.step()
+          Keys.onLeftPressed: choice.step()
+          Keys.onRightPressed: choice.step()
+
+          Repeater {
+            model: row.isChoice ? row.modelData.choices : []
+
+            delegate: Rectangle {
+              id: choiceOption
+              required property string modelData
+
+              readonly property bool chosen: choiceOption.modelData === choice.current
+
+              width: Math.round(30 * view.hudScale)
+              height: Math.round(20 * view.hudScale)
+              color: choiceOption.chosen ? Qt.rgba(1, 1, 1, 0.16) : "transparent"
+              border.width: 1
+              border.color: Qt.rgba(1, 1, 1, choiceOption.chosen && choice.activeFocus ? 0.75
+                : (choiceOption.chosen ? 0.4 : 0.15))
+
+              Text {
+                anchors.centerIn: parent
+                text: "°" + choiceOption.modelData
+                color: view.hud
+                opacity: choiceOption.chosen ? 1 : 0.5
+                font.family: view.hudFont
+                font.pixelSize: Math.round(12 * view.hudScale)
+              }
+
+              MouseArea {
+                anchors.fill: parent
+                onClicked: {
+                  choice.forceActiveFocus()
+                  view.store.setTempUnit(choiceOption.modelData)
+                }
+              }
+            }
+          }
+        }
+
         // A hairline that lights up on focus, instead of a boxed control —
         // the HUD has no chrome anywhere else.
         Rectangle {
+          visible: !row.isChoice
           anchors { left: rowLabel.right; right: parent.right; bottom: parent.bottom }
           anchors.bottomMargin: Math.round(3 * view.hudScale)
           height: Math.max(1, Math.round(1 * view.hudScale))
@@ -140,6 +201,8 @@ FocusScope {
 
         TextInput {
           id: input
+          visible: !row.isChoice
+          enabled: !row.isChoice
           anchors {
             left: rowLabel.right
             right: parent.right

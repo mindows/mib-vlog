@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtMultimedia
+import QtQuick.Shapes
 import Quickshell
 import Quickshell.Wayland
 import qs.Commons
@@ -46,6 +47,19 @@ Item {
   readonly property color hud: "#f2f5f7"
   readonly property color recordColor: "#e8413a"
   readonly property string hudFont: Style.font.family
+
+  // The current temperature in the chosen scale, one decimal like the rest
+  // of the readouts, and where it sits on that scale's gauge: -10..50 °C,
+  // 0..130 °F.
+  readonly property real temperature: store.tempUnit === "F"
+    ? weather.temperatureC * 9 / 5 + 32 : weather.temperatureC
+  readonly property string temperatureText: isNaN(temperature) ? "--" : temperature.toFixed(1)
+  readonly property real temperatureFill: {
+    if (isNaN(temperature)) return 0
+    var low = store.tempUnit === "F" ? 0 : -10
+    var high = store.tempUnit === "F" ? 130 : 50
+    return Math.max(0, Math.min(1, (temperature - low) / (high - low)))
+  }
 
   // Log entries read as an index on the feed, so they keep three digits.
   readonly property string paddedEntry: {
@@ -201,55 +215,93 @@ Item {
     }
   }
 
-  // The weather readout: caption over condition, with the condition's icon
-  // in a circle as tall as the two lines together — the one readout whose
-  // circle holds a picture rather than a unit.
-  component WeatherBlock: Row {
+  // A readout whose circle is as tall as its caption and value together and
+  // holds a symbol rather than a unit: the weather icon, or the temperature
+  // scale. With `fill` set, the circle doubles as a gauge, its outline lit
+  // clockwise from twelve o'clock in proportion.
+  component RingBlock: Row {
+    id: ringBlock
+    property string caption: ""
+    property string value: ""
+    property string symbol: ""
+    // 0..1 lights that much of the outline; negative means no gauge.
+    property real fill: -1
+
+    readonly property bool gauge: fill >= 0
+    readonly property real strokeWidth: Math.max(1, Math.round(1.2 * root.hudScale))
+    readonly property real arcWidth: Math.max(1.5, 2 * root.hudScale)
+
     spacing: Math.round(10 * root.hudScale)
 
     Column {
       anchors.verticalCenter: parent.verticalCenter
       spacing: Math.round(-5 * root.hudScale)
 
-      HudCaption { id: weatherCaption; text: "Weather" }
+      HudCaption { id: ringCaption; text: ringBlock.caption }
 
       HudReadout {
-        id: weatherValue
-        text: weather.status || weather.label || "--"
+        id: ringValue
+        text: ringBlock.value
         font.capitalization: Font.AllUppercase
       }
     }
 
-    Rectangle {
-      id: weatherRing
+    Item {
+      id: ring
       anchors.verticalCenter: parent.verticalCenter
-      width: weatherCaption.implicitHeight + weatherValue.implicitHeight
+      width: ringCaption.implicitHeight + ringValue.implicitHeight
       height: width
-      radius: width / 2
-      color: "transparent"
-      border.width: Math.max(1, Math.round(1.2 * root.hudScale))
-      border.color: Qt.rgba(root.hud.r, root.hud.g, root.hud.b, 0.55)
 
-      // Weather glyphs sit off-centre in their em box, and each one
-      // differently, so the icon is centred on its inked bounds rather than
-      // on its line box.
+      // A gauge dims its track so the lit arc reads against it.
+      Rectangle {
+        anchors.fill: parent
+        radius: width / 2
+        color: "transparent"
+        border.width: ringBlock.strokeWidth
+        border.color: Qt.rgba(root.hud.r, root.hud.g, root.hud.b, ringBlock.gauge ? 0.28 : 0.55)
+      }
+
+      Shape {
+        anchors.fill: parent
+        visible: ringBlock.gauge && ringBlock.fill > 0
+        preferredRendererType: Shape.CurveRenderer
+
+        ShapePath {
+          strokeColor: Qt.rgba(root.hud.r, root.hud.g, root.hud.b, 0.95)
+          strokeWidth: ringBlock.arcWidth
+          fillColor: "transparent"
+          capStyle: ShapePath.FlatCap
+
+          PathAngleArc {
+            centerX: ring.width / 2
+            centerY: ring.height / 2
+            radiusX: (ring.width - ringBlock.arcWidth) / 2
+            radiusY: radiusX
+            startAngle: -90
+            sweepAngle: 360 * Math.min(1, ringBlock.fill)
+          }
+        }
+      }
+
+      // Glyphs sit off-centre in their em box, and each one differently, so
+      // the symbol is centred on its inked bounds rather than its line box.
       TextMetrics {
-        id: iconInk
-        font: weatherIcon.font
-        text: weatherIcon.text
+        id: symbolInk
+        font: ringSymbol.font
+        text: ringSymbol.text
       }
 
       Text {
-        id: weatherIcon
-        x: Math.round(weatherRing.width / 2
-          - (iconInk.tightBoundingRect.x + iconInk.tightBoundingRect.width / 2))
-        y: Math.round(weatherRing.height / 2
-          - (weatherIcon.baselineOffset + iconInk.tightBoundingRect.y + iconInk.tightBoundingRect.height / 2))
-        text: weather.glyph
+        id: ringSymbol
+        x: Math.round(ring.width / 2
+          - (symbolInk.tightBoundingRect.x + symbolInk.tightBoundingRect.width / 2))
+        y: Math.round(ring.height / 2
+          - (ringSymbol.baselineOffset + symbolInk.tightBoundingRect.y + symbolInk.tightBoundingRect.height / 2))
+        text: ringBlock.symbol
         color: root.hud
         opacity: 0.9
         font.family: root.hudFont
-        font.pixelSize: Math.round(weatherRing.width * 0.5)
+        font.pixelSize: Math.round(ring.width * 0.5)
       }
     }
   }
@@ -382,8 +434,18 @@ Item {
         y: Math.round(card.height * 0.25)
         spacing: Math.round(10 * root.hudScale)
 
-        WeatherBlock { }
-        StatBlock { caption: "Oxygen"; value: "20.79"; unit: "%" }
+        RingBlock {
+          caption: "Weather"
+          value: weather.status || weather.label || "--"
+          symbol: weather.glyph
+        }
+
+        RingBlock {
+          caption: "Temp"
+          value: root.temperatureText
+          symbol: store.tempUnit
+          fill: root.temperatureFill
+        }
         StatBlock { caption: "Temp"; value: "21.14"; unit: "C" }
 
         HudCaption {
