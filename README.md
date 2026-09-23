@@ -2,6 +2,10 @@
 
 ![MIB Vlog panel: the front camera under the mission HUD](preview.png)
 
+You've seen it in dozens of sci-fi movies: someone recording a video log about how the experiments are failing, or how the food supply is running low.
+
+I wanted my own version of that vanity video recorder, one I can pull up in a second to log an entry, with a transcript landing in my Obsidian notes at the same time. Might as well have some fun while I'm at it.
+
 An Omarchy shell plugin: a red record dot on the status bar that opens a
 Mars-mission style vlog panel — your front camera live in the background,
 under a translucent mission-status HUD.
