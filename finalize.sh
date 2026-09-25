@@ -19,7 +19,14 @@
 # The video is re-encoded in any case: Qt's recorder writes H.264 in 10-bit
 # 4:4:4, which mpv and VLC play but browsers, phones, and QuickTime do not;
 # 8-bit 4:2:0 plays anywhere. If ffmpeg is missing or fails, the raw video
-# is kept under the final name rather than lost.
+# is kept instead rather than lost.
+#
+# <final> is the name prepare.sh found free when the take started, but it is
+# not reserved: another file may have taken it since. So the take is encoded
+# into a hidden file of its own and then moved into place with a rename that
+# refuses to replace anything. If <final> is taken, the take goes to the first
+# free <final>-1.mp4, <final>-2.mp4, ... and the other file is left alone.
+# Nothing here ever deletes or overwrites a file this script did not create.
 #
 # <take-json> describes the take (start time, place, host, conditions) and
 # is written into the file's metadata, with the duration added here: the
@@ -131,6 +138,7 @@ take_metadata() {
 }
 
 encode() {
+  local output=$1
   local inputs=(-i "$video") audio_out=() next=1
   if $have_audio; then
     local skew
@@ -168,23 +176,44 @@ encode() {
     [[ -n $line ]] && metadata+=(-metadata "$line")
   done < <(take_metadata)
 
-  # -map_metadata -1: only the take's own tags, not the raw inputs'.
-  ffmpeg -n -loglevel error "${inputs[@]}" -filter_complex "$filter" \
+  # -map_metadata -1: only the take's own tags, not the raw inputs'. -y is
+  # safe: <output> is the hidden file made for this take by mktemp.
+  ffmpeg -y -loglevel error "${inputs[@]}" -filter_complex "$filter" \
     -map "$out" -c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p \
     "${audio_out[@]}" -map_metadata -1 "${metadata[@]}" \
-    -movflags +faststart+use_metadata_tags -shortest "$final"
+    -movflags +faststart+use_metadata_tags -shortest -f mp4 "$output"
 }
 
-if command -v ffmpeg >/dev/null && encode; then
+# Moves <file> to $final, or to the first free $final-1.mp4, $final-2.mp4, ...
+# when something else holds that name, and points $final at where it landed.
+# --update=none-fail is a single rename that fails rather than replace an
+# existing file, so a name taken at the last moment is still never clobbered.
+place() {
+  local src=$1 stem=${final%.mp4} candidate=$final n=1
+  until mv --update=none-fail -- "$src" "$candidate" 2>/dev/null; do
+    # Only a taken name moves on to the next one; any other failure stops.
+    [[ -e $candidate || -L $candidate ]] || return 1
+    ((n < 1000)) || return 1
+    candidate=$stem-$n.mp4
+    n=$((n + 1))
+  done
+  final=$candidate
+}
+
+encoded=$(mktemp "${final%/*}/.$(basename "$final" .mp4).encoding.XXXXXX") || encoded=""
+# The size check backs up ffmpeg's exit status, which is not always a
+# reliable sign that a file was written.
+if [[ -n $encoded ]] && command -v ffmpeg >/dev/null && encode "$encoded" && [[ -s $encoded ]] &&
+  place "$encoded"; then
   rm -f "$video" "$audio"
 else
-  rm -f "$final"
-  mv -n "$video" "$final"
+  [[ -n $encoded ]] && rm -f "$encoded"
+  # The raw video instead; if even that cannot be placed, the hidden
+  # recording stays where it is rather than being lost.
+  place "$video" || exit 1
   rm -f "$audio"
 fi
 [[ -n $hud_dir ]] && rm -rf "$hud_dir"
-
-[[ -e $final ]] || exit 1
 
 if command -v notify-send >/dev/null; then
   notify-send -a "MIB Vlog" "Log entry saved" "$(basename "$final")"
@@ -205,8 +234,11 @@ transcribe() {
 
 # The video embedded at the top (Obsidian's ![[...]] link, which resolves by
 # file name), a heading and one line of context, the text, and the
-# conditions the take was recorded in at the end.
-write_transcript() {
+# conditions the take was recorded in at the end. noclobber: if a file
+# already has the transcript's name, it is left alone and no transcript is
+# written.
+write_transcript() (
+  set -o noclobber
   local text=$1 transcript=${final%.mp4}.md length
   length=$(duration "$final")
   {
@@ -230,8 +262,8 @@ write_transcript() {
         (if (.aqi // "") != "" then "- AQI: " + .aqi else empty end) ]
       | if length > 0 then "\n## Environment\n\n" + join("\n") else empty end
     ' <<<"$take_json" 2>/dev/null
-  } >"$transcript"
-}
+  } 2>/dev/null >"$transcript"
+)
 
 if [[ $want_transcript == transcribe ]] && $have_audio && command -v voxtype >/dev/null; then
   text=$(transcribe) && write_transcript "$text"
