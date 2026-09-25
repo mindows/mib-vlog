@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Join a finished take's parts into its final file.
 #
-#   finalize.sh <video> <audio> <final> [denoise] [hud-dir] [hud-offsets] [mirror] [take-json] [transcribe] [work-dir]
+#   MIBVLOG_TAKE=<take-json> finalize.sh <video> <audio> <final> [denoise] [hud-dir] [hud-offsets] [mirror] [unused] [transcribe] [work-dir]
 #
 # <video> is Qt's recording (picture only) and <audio> is pw-record's WAV.
 # They were started a moment apart but stopped together, so they are lined
@@ -33,8 +33,12 @@
 # removed as a whole, and it is the only directory this script removes: a
 # path that is not a take's work directory beside <final> is left alone.
 #
-# <take-json> describes the take (start time, place, host, conditions) and
-# is written into the file's metadata, with the duration added here: the
+# <take-json> describes the take (start time, place, host, conditions). It
+# comes in through the environment (MIBVLOG_TAKE), not the command line,
+# because it can hold the place, and any user on the machine can read a
+# process's command line; its environment only its owner can. For the same
+# reason the tags reach ffmpeg in a private ffmetadata file, not as
+# -metadata arguments. The take is written into the file's metadata, with the duration added here: the
 # standard creation date and ISO 6709 location that photo libraries read,
 # a title and one-line summary for players, and every field under mibvlog.*.
 # The place, coordinates, and hostname are left out unless the take's
@@ -60,7 +64,8 @@ denoise=${4:-}
 hud_dir=${5:-}
 hud_offsets=${6:-}
 mirror=${7:-}
-take_json=${8:-"{}"}
+take_json=${MIBVLOG_TAKE:-"{}"}
+unset MIBVLOG_TAKE
 want_transcript=${9:-}
 work=${10:-}
 
@@ -109,8 +114,8 @@ hud_list() {
   echo "$list"
 }
 
-# -metadata arguments for the take, one per line (key=value). Empty fields
-# are left out.
+# The take's tags as ffmetadata lines (key=value, with =, ;, #, \ and
+# newlines escaped). Empty fields are left out.
 take_metadata() {
   local length
   length=$(duration "$video")
@@ -118,7 +123,8 @@ take_metadata() {
     def two: tostring | if length < 2 then "0" + . else . end;
     # ISO 6709 coordinate: signed degrees to four decimals (about 10 m).
     def coord: (if . >= 0 then "+" else "" end) + (. * 10000 | round / 10000 | tostring);
-    def put($key; $value): if ($value // "") == "" then empty else "\($key)=\($value)" end;
+    def esc: tostring | gsub("(?<c>[=;#\\\\\n])"; "\\\(.c)");
+    def put($key; $value): if ($value // "") == "" then empty else "\($key)=\($value | esc)" end;
 
     # Without tagLocation, where the take was made stays out of the file.
     (if .tagLocation == true then . else .location = "" | .latitude = null
@@ -185,17 +191,22 @@ encode() {
     out="[burned]"
   fi
 
-  local metadata=() line
-  while IFS= read -r line; do
-    [[ -n $line ]] && metadata+=(-metadata "$line")
-  done < <(take_metadata)
+  # The tags go in as one more input, an ffmetadata file (mktemp: mode
+  # 0600), and only its tags are kept: none from the raw recording or its
+  # streams. -y is safe: <output> is the hidden file made for this take.
+  local meta arg meta_input=0 status
+  meta=$(mktemp) || return 1
+  { echo ";FFMETADATA1"; take_metadata; } >"$meta"
+  for arg in "${inputs[@]}"; do [[ $arg == -i ]] && meta_input=$((meta_input + 1)); done
+  inputs+=(-f ffmetadata -i "$meta")
 
-  # -map_metadata -1: only the take's own tags, not the raw inputs'. -y is
-  # safe: <output> is the hidden file made for this take by mktemp.
   ffmpeg -y -loglevel error "${inputs[@]}" -filter_complex "$filter" \
     -map "$out" -c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p \
-    "${audio_out[@]}" -map_metadata -1 "${metadata[@]}" \
+    "${audio_out[@]}" -map_metadata "$meta_input" -map_metadata:s -1 -map_chapters -1 \
     -movflags +faststart+use_metadata_tags -shortest -f mp4 "$output"
+  status=$?
+  rm -f "$meta"
+  return $status
 }
 
 # Moves <file> to $final, or to the first free $final-1.mp4, $final-2.mp4, ...

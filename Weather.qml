@@ -13,6 +13,8 @@ import "WeatherCodes.js" as WeatherCodes
 // weather widget does it: Open-Meteo for conditions and city search, and
 // locate.sh (BeaconDB, ipinfo.io, Nominatim) for the first guess. Each
 // request runs through fetch.sh, which caps how much of an answer is read.
+// URLs go to it in the environment (FETCH_URL), never on the command line,
+// since they carry the coordinates or the typed city.
 Item {
   id: weather
 
@@ -43,11 +45,11 @@ Item {
     if (!weather.hasLocation) return
     weather.refreshAirQuality()
     if (conditions.running) { weather.refreshQueued = true; return }
-    conditions.command = ["bash", weather.pluginDir + "/fetch.sh", "8",
-      "https://api.open-meteo.com/v1/forecast"
+    conditions.environment = { FETCH_URL: "https://api.open-meteo.com/v1/forecast"
       + "?latitude=" + weather.store.latitude
       + "&longitude=" + weather.store.longitude
-      + "&current=weather_code,is_day,temperature_2m"]
+      + "&current=weather_code,is_day,temperature_2m" }
+    conditions.command = ["bash", weather.pluginDir + "/fetch.sh", "8"]
     conditions.running = true
   }
 
@@ -57,11 +59,11 @@ Item {
   // conditions. A failed poll keeps the last reading.
   function refreshAirQuality() {
     if (airQuality.running) return
-    airQuality.command = ["bash", weather.pluginDir + "/fetch.sh", "8",
-      "https://air-quality-api.open-meteo.com/v1/air-quality"
+    airQuality.environment = { FETCH_URL: "https://air-quality-api.open-meteo.com/v1/air-quality"
       + "?latitude=" + weather.store.latitude
       + "&longitude=" + weather.store.longitude
-      + "&current=us_aqi"]
+      + "&current=us_aqi" }
+    airQuality.command = ["bash", weather.pluginDir + "/fetch.sh", "8"]
     airQuality.running = true
   }
 
@@ -216,9 +218,9 @@ Item {
   function runSearch() {
     if (geocoder.running || !weather.pendingQuery) return
     weather.activeQuery = weather.pendingQuery
-    geocoder.command = ["bash", weather.pluginDir + "/fetch.sh", "5",
-      "https://geocoding-api.open-meteo.com/v1/search?name="
-      + encodeURIComponent(weather.activeQuery) + "&count=6&language=en&format=json"]
+    geocoder.environment = { FETCH_URL: "https://geocoding-api.open-meteo.com/v1/search?name="
+      + encodeURIComponent(weather.activeQuery) + "&count=6&language=en&format=json" }
+    geocoder.command = ["bash", weather.pluginDir + "/fetch.sh", "5"]
     geocoder.running = true
   }
 

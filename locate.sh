@@ -16,7 +16,9 @@
 set -uo pipefail
 
 # Every request goes through fetch.sh, which caps how much of an answer is
-# read before jq sees it.
+# read before jq sees it. Private values (access points, coordinates, the
+# place name) are handed on through the environment or stdin, never as
+# command-line arguments, which any user on the machine can read.
 fetch="$(dirname "$0")/fetch.sh"
 
 version=$(jq -r '.version // empty' "$(dirname "$0")/manifest.json" 2>/dev/null)
@@ -43,15 +45,15 @@ from_beacondb() {
   local aps
   aps=$(access_points)
   [[ -n $aps ]] || aps="[]"
-  bash "$fetch" 8 https://api.beacondb.net/v1/geolocate \
-    -A "$UA" -H 'Content-Type: application/json' \
-    -d "{\"considerIp\":true,\"wifiAccessPoints\":$aps}" |
+  FETCH_URL=https://api.beacondb.net/v1/geolocate \
+    FETCH_DATA="{\"considerIp\":true,\"wifiAccessPoints\":$aps}" \
+    bash "$fetch" 8 -A "$UA" -H 'Content-Type: application/json' |
     jq -ec '{latitude: .location.lat, longitude: .location.lng,
              source: (if .fallback then "ip" else "wifi" end)}' 2>/dev/null
 }
 
 from_ipinfo() {
-  bash "$fetch" 6 https://ipinfo.io/json -A "$UA" |
+  FETCH_URL=https://ipinfo.io/json bash "$fetch" 6 -A "$UA" |
     jq -ec '(.loc | split(",")) as $ll
             | {latitude: ($ll[0] | tonumber), longitude: ($ll[1] | tonumber),
                name: ([.city, .region, .country] | map(select(. != null and . != "")) | join(", ")),
@@ -59,9 +61,8 @@ from_ipinfo() {
 }
 
 place_name() {
-  bash "$fetch" 6 \
-    "https://nominatim.openstreetmap.org/reverse?lat=$1&lon=$2&format=jsonv2&zoom=10&accept-language=en" \
-    -A "$UA" |
+  FETCH_URL="https://nominatim.openstreetmap.org/reverse?lat=$1&lon=$2&format=jsonv2&zoom=10&accept-language=en" \
+    bash "$fetch" 6 -A "$UA" |
     jq -er '.address
             | [(.city // .town // .village // .hamlet // .county), .state, .country]
             | map(select(. != null and . != "")) | join(", ")
@@ -78,6 +79,6 @@ name=$(place_name "$lat" "$lon") || name=$(jq -r '.name // empty' <<<"$fix")
 # The name comes from a remote service: control and invisible formatting
 # characters become spaces, space collapses, and it is cut to 120 characters,
 # as Plugin.js placeName() does.
-jq -cn --arg name "$name" --argjson fix "$fix" '
-  $fix + {name: ($name | gsub("[\\p{Cc}\\p{Cf}]"; " ") | gsub("\\s+"; " ")
+NAME=$name FIX=$fix jq -cn '
+  ($ENV.FIX | fromjson) + {name: ($ENV.NAME | gsub("[\\p{Cc}\\p{Cf}]"; " ") | gsub("\\s+"; " ")
                  | sub("^ "; "") | sub(" $"; "") | .[0:120] | sub(" $"; ""))}'

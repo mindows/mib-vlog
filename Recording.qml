@@ -143,14 +143,20 @@ Item {
     // The take is on disk: the next one gets the next index, whatever
     // happens to the re-encode.
     recording.store.countEntry()
-    Quickshell.execDetached(["bash", recording.pluginDir + "/finalize.sh",
-      recording.partialPath, recording.audioPath, recording.finalPath,
-      recording.store.noiseReduction ? "denoise" : "",
-      recording.hudDir, recording.hudOffsets.join(","),
-      recording.store.mirrorVideo ? "mirror" : "",
-      JSON.stringify(recording.takeInfo),
-      recording.store.transcribe ? "transcribe" : "",
-      recording.workDir])
+    // The take's details go in the environment, not the command line: they
+    // can hold the place, and any user on the machine can read a process's
+    // command line, while its environment is readable only by its owner.
+    Quickshell.execDetached({
+      command: ["bash", recording.pluginDir + "/finalize.sh",
+        recording.partialPath, recording.audioPath, recording.finalPath,
+        recording.store.noiseReduction ? "denoise" : "",
+        recording.hudDir, recording.hudOffsets.join(","),
+        recording.store.mirrorVideo ? "mirror" : "",
+        "",
+        recording.store.transcribe ? "transcribe" : "",
+        recording.workDir],
+      environment: { MIBVLOG_TAKE: JSON.stringify(recording.takeInfo) }
+    })
   }
 
   // ISO 8601 in local time with its UTC offset, e.g. 2026-09-22T21:16:50-07:00.
@@ -180,17 +186,20 @@ Item {
     var aqi = weather && !isNaN(weather.aqi) ? String(Math.round(weather.aqi)) : ""
     var conditions = weather ? weather.label : ""
     var hasPlace = store.locationName !== ""
+    // Coordinates and hostname are only carried when they will be written
+    // into the file; the place name stays for the transcript.
+    var tagLocation = store.locationMetadata
 
     return {
       title: store.logLabel + " #" + seq,
       startUtc: start.toISOString(),
       startLocal: recording.localIso(start),
       location: store.locationName,
-      latitude: hasPlace ? store.latitude : null,
-      longitude: hasPlace ? store.longitude : null,
-      hostname: store.hostname,
+      latitude: hasPlace && tagLocation ? store.latitude : null,
+      longitude: hasPlace && tagLocation ? store.longitude : null,
+      hostname: tagLocation ? store.hostname : "",
       // Whether the place and hostname go into the file's tags.
-      tagLocation: store.locationMetadata,
+      tagLocation: tagLocation,
       weather: conditions,
       temperature: temperature,
       aqi: aqi,
