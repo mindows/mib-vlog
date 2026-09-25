@@ -62,6 +62,7 @@ Item {
   // ----------------------------------------------------------- HUD pieces
 
   component HudCaption: Text {
+    textFormat: Text.PlainText
     color: hud.hudColor
     opacity: 0.72
     font.family: hud.hudFont
@@ -71,6 +72,7 @@ Item {
   }
 
   component HudReadout: Text {
+    textFormat: Text.PlainText
     color: hud.hudColor
     opacity: 0.9
     font.family: hud.hudFont
@@ -185,6 +187,7 @@ Item {
       }
 
       Text {
+        textFormat: Text.PlainText
         id: ringSymbol
         x: Math.round(ring.width / 2
           - (symbolInk.tightBoundingRect.x + symbolInk.tightBoundingRect.width / 2))
@@ -208,6 +211,7 @@ Item {
     implicitHeight: Math.round(28 * hud.hudScale)
 
     Text {
+      textFormat: Text.PlainText
       id: cellText
       anchors.centerIn: parent
       color: hud.hudColor
@@ -356,6 +360,7 @@ Item {
         spacing: Math.round(9 * hud.hudScale)
 
         Text {
+          textFormat: Text.PlainText
           text: hud.store.habLabel
           color: hud.hudColor
           font.family: hud.hudFont
@@ -365,6 +370,7 @@ Item {
         }
 
         Text {
+          textFormat: Text.PlainText
           text: hud.store.locationLabel
           color: hud.hudColor
           opacity: 0.85
@@ -441,6 +447,7 @@ Item {
 
       // The one control on the feed: it swaps the card over to settings.
       Text {
+        textFormat: Text.PlainText
         id: gear
         anchors.verticalCenter: parent.verticalCenter
         text: "󰒓"

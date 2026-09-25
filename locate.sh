@@ -75,4 +75,9 @@ lon=$(jq -r .longitude <<<"$fix")
 name=$(place_name "$lat" "$lon") || name=$(jq -r '.name // empty' <<<"$fix")
 [[ -n $name ]] || name=$(printf '%.3f, %.3f' "$lat" "$lon")
 
-jq -cn --arg name "$name" --argjson fix "$fix" '$fix + {name: $name}'
+# The name comes from a remote service: control and invisible formatting
+# characters become spaces, space collapses, and it is cut to 120 characters,
+# as Plugin.js placeName() does.
+jq -cn --arg name "$name" --argjson fix "$fix" '
+  $fix + {name: ($name | gsub("[\\p{Cc}\\p{Cf}]"; " ") | gsub("\\s+"; " ")
+                 | sub("^ "; "") | sub(" $"; "") | .[0:120] | sub(" $"; ""))}'

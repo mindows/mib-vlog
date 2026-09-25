@@ -239,10 +239,11 @@ Item {
         var out = []
         for (var i = 0; i < results.length; i++) {
           var r = results[i]
+          if (!r || !isFinite(r.latitude) || !isFinite(r.longitude)) continue
           var parts = [r.name, r.admin1, r.country].filter(function(p) { return !!p })
           // "Santa Clara, Santa Clara" when admin1 repeats the city name.
-          var name = parts.filter(function(p, j) { return parts.indexOf(p) === j }).join(", ")
-          out.push({ name: name, latitude: r.latitude, longitude: r.longitude })
+          var name = Plugin.placeName(parts.filter(function(p, j) { return parts.indexOf(p) === j }).join(", "))
+          if (name) out.push({ name: name, latitude: Number(r.latitude), longitude: Number(r.longitude) })
         }
         weather.suggestions = out
         weather.searching = false

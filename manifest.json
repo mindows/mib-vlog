@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.mindows.mib-vlog",
   "name": "MIB Vlog",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "author": "Min Kim",
   "license": "MIT",
   "description": "A record button on the bar that opens a Mars-mission style vlog panel: the front camera live in the background under a translucent mission-status HUD. Click the panel to close it.",

@@ -124,6 +124,7 @@ FocusScope {
   }
 
   Text {
+    textFormat: Text.PlainText
     id: title
     x: Math.round(26 * view.hudScale)
     y: Math.round(14 * view.hudScale)
@@ -166,6 +167,7 @@ FocusScope {
           height: view.rowHeight
 
           Text {
+            textFormat: Text.PlainText
             id: rowLabel
             anchors.verticalCenter: parent.verticalCenter
             width: Math.round(150 * view.hudScale)
@@ -220,6 +222,7 @@ FocusScope {
                   : (choiceOption.chosen ? 0.4 : 0.15))
 
                 Text {
+                  textFormat: Text.PlainText
                   id: optionText
                   anchors.centerIn: parent
                   text: choiceOption.modelData.text
@@ -305,6 +308,7 @@ FocusScope {
             }
 
             Text {
+              textFormat: Text.PlainText
               anchors.fill: parent
               visible: input.text === ""
               text: row.modelData.hint || ""
@@ -331,6 +335,7 @@ FocusScope {
   }
 
   Text {
+    textFormat: Text.PlainText
     id: gear
     anchors {
       right: parent.right
@@ -384,6 +389,7 @@ FocusScope {
           color: option.index === view.highlighted ? Qt.rgba(1, 1, 1, 0.14) : "transparent"
 
           Text {
+            textFormat: Text.PlainText
             anchors { left: parent.left; leftMargin: Math.round(6 * view.hudScale); right: parent.right
                       verticalCenter: parent.verticalCenter }
             text: option.modelData.name
@@ -416,6 +422,7 @@ FocusScope {
     spacing: Math.round(16 * view.hudScale)
 
     Text {
+      textFormat: Text.PlainText
       text: "Sol " + view.store.sol
       color: view.hud
       opacity: 0.55
@@ -426,6 +433,7 @@ FocusScope {
     }
 
     Text {
+      textFormat: Text.PlainText
       text: view.weather.searching ? "Searching" : (view.weather.status || view.weather.label)
       color: view.hud
       opacity: 0.55
@@ -436,6 +444,7 @@ FocusScope {
     }
 
     Text {
+      textFormat: Text.PlainText
       text: "Log entries " + view.store.entryCount
       color: view.hud
       opacity: 0.55

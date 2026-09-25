@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "Plugin.js" as Plugin
 
 // Everything the HUD reads that is not the camera: the editable labels, the
 // mission clock, the sol counter, and this machine's hostname.
@@ -45,7 +46,8 @@ Item {
 
   // Where the weather is read for. An empty name means never set, and the
   // first open guesses it.
-  readonly property string locationName: data.locationName
+  // Cleaned on read as well, for a name saved before names were cleaned.
+  readonly property string locationName: Plugin.placeName(data.locationName)
   readonly property real latitude: data.latitude
   readonly property real longitude: data.longitude
   // Clean fan hiss and rumble out of each take's sound when it is saved.
@@ -131,11 +133,19 @@ Item {
     store.save()
   }
 
+  // Returns false, keeping the current place, for an empty name or
+  // coordinates that are not a place on Earth.
   function setLocation(name, latitude, longitude) {
-    data.locationName = String(name)
-    data.latitude = Number(latitude)
-    data.longitude = Number(longitude)
+    var place = Plugin.placeName(name)
+    var lat = Number(latitude)
+    var lon = Number(longitude)
+    if (!place || !isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180)
+      return false
+    data.locationName = place
+    data.latitude = lat
+    data.longitude = lon
     store.save()
+    return true
   }
 
   function setLocationMetadata(enabled) {
