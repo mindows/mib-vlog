@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Join a finished take's parts into its final file.
 #
-#   finalize.sh <video> <audio> <final> [denoise] [hud-dir] [hud-offsets] [mirror] [take-json] [transcribe]
+#   finalize.sh <video> <audio> <final> [denoise] [hud-dir] [hud-offsets] [mirror] [take-json] [transcribe] [work-dir]
 #
 # <video> is Qt's recording (picture only) and <audio> is pw-record's WAV.
 # They were started a moment apart but stopped together, so they are lined
@@ -27,6 +27,11 @@
 # refuses to replace anything. If <final> is taken, the take goes to the first
 # free <final>-1.mp4, <final>-2.mp4, ... and the other file is left alone.
 # Nothing here ever deletes or overwrites a file this script did not create.
+#
+# <work-dir> is the take's own directory from prepare.sh (mktemp -d), which
+# holds <video>, <audio>, and <hud-dir>. Once the take is in place it is
+# removed as a whole, and it is the only directory this script removes: a
+# path that is not a take's work directory beside <final> is left alone.
 #
 # <take-json> describes the take (start time, place, host, conditions) and
 # is written into the file's metadata, with the duration added here: the
@@ -57,6 +62,15 @@ hud_offsets=${6:-}
 mirror=${7:-}
 take_json=${8:-"{}"}
 want_transcript=${9:-}
+work=${10:-}
+
+# A take's work directory: .<name>.XXXXXX (mktemp -d) in the same folder as
+# <final>, holding the recording. Anything else is not ours to remove.
+is_work_dir() {
+  [[ -n $work && -d $work && ! -L $work ]] || return 1
+  [[ ${work%/*} == "${final%/*}" && ${work##*/} =~ ^\..+\.[A-Za-z0-9]{6}$ ]] || return 1
+  [[ $video == "$work"/* ]]
+}
 
 duration() {
   ffprobe -v error -show_entries format=duration -of csv=p=0 "$1" 2>/dev/null
@@ -213,7 +227,8 @@ else
   place "$video" || exit 1
   rm -f "$audio"
 fi
-[[ -n $hud_dir ]] && rm -rf "$hud_dir"
+# The take is in place: its work directory (sound, snapshots, lists) goes.
+is_work_dir && rm -rf -- "$work"
 
 if command -v notify-send >/dev/null; then
   notify-send -a "MIB Vlog" "Log entry saved" "$(basename "$final")"

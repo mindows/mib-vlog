@@ -97,8 +97,9 @@ is taken, `-1`, `-2`, ... is appended.
   `pw-record` for audio — because inside the long-running shell Qt keeps
   recording whichever mic was the default when the panel first loaded. They
   are stopped together and lined up by their ends.
-- A take is written to hidden `.<name>.recording.mp4` / `.wav` files and
-  becomes the real file only once both have closed. `finalize.sh` then joins
+- A take is written into its own hidden folder (`.<name>.XXXXXX`, made fresh
+  for each take) and becomes the real file only once both halves have
+  closed; the folder is then removed. `finalize.sh` then joins
   them and re-encodes to 8-bit 4:2:0 H.264 with `ffmpeg`, because Qt's
   recorder writes 10-bit 4:4:4, which browsers, phones, and QuickTime cannot
   play. A notification says when the file is saved.

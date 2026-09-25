@@ -55,6 +55,10 @@ Item {
   property bool audioClosed: false
 
   property string hudDir: ""
+  // The take's own directory from prepare.sh (mktemp -d), holding the
+  // recording, its sound, and the HUD snapshots until the take is finished.
+  // It is the only thing a take ever deletes.
+  property string workDir: ""
   property real startedAt: 0
   // Seconds into the take at which each snapshot takes over, in file order.
   property var hudOffsets: []
@@ -74,6 +78,7 @@ Item {
     recording.stopRequested = false
     recording.partialPath = ""
     recording.hudDir = ""
+    recording.workDir = ""
     recording.hudOffsets = []
     recording.videoClosed = false
     recording.audioClosed = false
@@ -132,8 +137,7 @@ Item {
     var saved = !recording.error
     recording.phase = "idle"
     if (!saved) {
-      Quickshell.execDetached(["rm", "-rf", recording.partialPath, recording.audioPath,
-        recording.hudDir])
+      if (recording.workDir) Quickshell.execDetached(["rm", "-rf", "--", recording.workDir])
       return
     }
     // The take is on disk: the next one gets the next index, whatever
@@ -145,7 +149,8 @@ Item {
       recording.hudDir, recording.hudOffsets.join(","),
       recording.store.mirrorVideo ? "mirror" : "",
       JSON.stringify(recording.takeInfo),
-      recording.store.transcribe ? "transcribe" : ""])
+      recording.store.transcribe ? "transcribe" : "",
+      recording.workDir])
   }
 
   // ISO 8601 in local time with its UTC offset, e.g. 2026-09-22T21:16:50-07:00.
@@ -229,20 +234,21 @@ Item {
       waitForEnd: true
       onStreamFinished: {
         var fields = text.replace(/\n$/, "").split("\t")
-        if (fields.length < 2 || !fields[0] || !fields[1]) {
+        if (fields.length < 5 || !fields[0] || !fields[1] || !fields[4]) {
           recording.fail("Cannot write to " + recording.store.outputDir)
           return
         }
         if (recording.stopRequested) {
-          // prepare.sh has already made the snapshot folder; nothing else
-          // will ever clear it for a take that never started.
-          if (fields[3]) Quickshell.execDetached(["rm", "-rf", "--", fields[3]])
+          // prepare.sh has already made the take's work directory; nothing
+          // else will ever clear it for a take that never started.
+          Quickshell.execDetached(["rm", "-rf", "--", fields[4]])
           recording.phase = "idle"
           return
         }
         recording.finalPath = fields[0]
         recording.partialPath = fields[1]
         recording.hudDir = fields[3] || ""
+        recording.workDir = fields[4]
         var command = ["pw-record", "--rate", "48000", "--channels", "2", "--format", "s16"]
         if (fields[2]) command.push("--target", fields[2])
         command.push(recording.audioPath)
