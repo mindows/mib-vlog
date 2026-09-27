@@ -232,6 +232,12 @@ Item {
     id: file
     path: store.configPath
     watchChanges: true
+    // Write synchronously. An asynchronous writeAdapter() puts the file's
+    // previous contents back into the adapter until the write lands, so
+    // every setting briefly reverted after a change, and code reading a
+    // value right after setting it (the location box after picking a
+    // city) got the old one. The file is a few hundred bytes.
+    blockWrites: true
     printErrors: false
     onFileChanged: reload()
     onLoaded: store.fileResolved = true
