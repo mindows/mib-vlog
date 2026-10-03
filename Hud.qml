@@ -39,9 +39,11 @@ Item {
 
   // The faintest captions (host and place at 0.45) are near-white on a
   // white wall whatever sits behind them, so every style but the soft
-  // halo lifts each mark's opacity toward full.
+  // halo lifts each mark's opacity toward full. It keeps their order:
+  // 0.45 becomes 0.75 and 1 stays 1, so a hovered gear still brightens and
+  // RECORDING still outshines STANDBY.
   function ink(opacity) {
-    return hud.textStyle === "soft" ? opacity : Math.min(1, opacity + 0.3)
+    return hud.textStyle === "soft" ? opacity : 0.55 + 0.45 * opacity
   }
 
   // The current temperature in the chosen scale, one decimal like the rest
@@ -255,51 +257,73 @@ Item {
   }
 
   // Plate: a dark plate behind each group of marks, like the SOL cell
-  // but for the whole block.
+  // but for the whole block. Groups stacked close together (`previous`,
+  // `next`) get plates that meet halfway between them, a hairline apart,
+  // rather than overlapping into a darker band.
   component Plate: Rectangle {
     property Item target
+    property Item previous: null
+    property Item next: null
     readonly property real pad: Math.round(8 * hud.hudScale)
+    readonly property real gap: Math.max(1, Math.round(2 * hud.hudScale))
+    readonly property real targetBottom: target.y + target.height
+    readonly property real plateTop: previous
+      ? Math.max(target.y - pad, (previous.y + previous.height + target.y + gap) / 2)
+      : target.y - pad
+    readonly property real plateBottom: next
+      ? Math.min(targetBottom + pad, (targetBottom + next.y - gap) / 2)
+      : targetBottom + pad
+
     visible: hud.textStyle === "plate" && target.visible
     x: target.x - pad
-    y: target.y - pad
+    y: Math.round(plateTop)
     width: target.width + 2 * pad
-    height: target.height + 2 * pad
+    height: Math.round(plateBottom) - y
     radius: Math.round(4 * hud.hudScale)
     color: Qt.rgba(0, 0, 0, 0.38)
   }
 
-  Plate { target: header }
-  Plate { target: stack }
+  Plate { target: header; next: stack }
+  Plate { target: stack; previous: header; next: footer }
+  Plate { target: footer; previous: stack }
   Plate { target: clockColumn }
-  Plate { target: footer }
+  Plate { target: recordMarker }
 
-  // Outline: hard black copies of the HUD nudged out in eight directions,
-  // with the HUD itself drawn over them, so every mark — rings and rules
-  // too — gets a solid edge. It scales with the HUD: 1px on the card, 3px
-  // in a 1280px take.
+  // Outline: one black silhouette of the HUD, laid down eight times a
+  // short step out in each direction, with the HUD itself drawn once over
+  // them, so every mark — rings and rules too — gets a solid edge. It
+  // scales with the HUD: 1px on the card, 3px in a 1280px take.
+  MultiEffect {
+    id: silhouette
+    anchors.fill: parent
+    visible: false
+    source: hud.textStyle === "outline" ? hudLayer : null
+    // Each mark's own alpha, in black.
+    brightness: -1
+    layer.enabled: hud.textStyle === "outline"
+  }
+
   Repeater {
     model: hud.textStyle === "outline" ? 8 : 0
 
-    MultiEffect {
+    // With no shaders of its own, a ShaderEffect draws `source` as is.
+    ShaderEffect {
       required property int index
       readonly property real distance: Math.max(1, Math.round(1.5 * hud.hudScale))
       readonly property real angle: index * Math.PI / 4
+      property var source: silhouette
 
-      anchors.fill: parent
-      source: hudLayer
-      shadowEnabled: true
-      shadowColor: "black"
-      shadowOpacity: 0.85
-      shadowBlur: 0
-      blurMax: 1
-      shadowHorizontalOffset: Math.round(distance * Math.cos(angle))
-      shadowVerticalOffset: Math.round(distance * Math.sin(angle))
+      x: Math.round(distance * Math.cos(angle))
+      y: Math.round(distance * Math.sin(angle))
+      width: hud.width
+      height: hud.height
     }
   }
 
   // The soft halo and the shadow: a dark copy of every mark behind it.
   // Soft is wide and faint and keeps the HUD airy; shadow is tight, full
-  // strength, and set down and right.
+  // strength, and set down and right. Plate keeps the soft halo for the
+  // marks no plate covers: the edge rules.
   Component {
     id: halo
 
@@ -326,8 +350,8 @@ Item {
     id: hudLayer
     anchors.fill: parent
     layer.enabled: true
-    // Outline draws from the plain layer; plate needs no shadow behind it.
-    layer.effect: hud.textStyle === "soft" || hud.textStyle === "shadow" ? halo : null
+    // Outline draws its silhouette from the plain layer.
+    layer.effect: hud.textStyle === "outline" ? null : halo
 
     // ------------------------------------------------------ header (left)
 
@@ -457,6 +481,7 @@ Item {
     // ----------------------------------------------------- record marker
 
     Row {
+      id: recordMarker
       visible: hud.controls
       anchors {
         right: parent.right
@@ -500,7 +525,7 @@ Item {
           HudCaption {
             anchors.verticalCenter: parent.verticalCenter
             text: hud.recording.active ? "Recording" : (hud.recording.error ? "Error" : "Standby")
-            opacity: hud.recording.active ? 0.95 : hud.ink(0.7)
+            opacity: hud.ink(hud.recording.active ? 0.95 : 0.7)
           }
         }
 
