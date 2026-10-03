@@ -51,6 +51,9 @@ FocusScope {
       choices: [{ value: "true", text: "On" }, { value: "false", text: "Off" }] },
     { key: "mirrorVideo", label: "Mirror video",
       choices: [{ value: "true", text: "On" }, { value: "false", text: "Off" }] },
+    { key: "textStyle", label: "Text style",
+      choices: [{ value: "soft", text: "Soft" }, { value: "shadow", text: "Shadow" },
+        { value: "outline", text: "Outline" }, { value: "plate", text: "Plate" }] },
     { key: "dimBackground", label: "Dim background",
       choices: [{ value: "true", text: "On" }, { value: "false", text: "Off" }] },
     { key: "tapToRecord", label: "Tap to record",
@@ -64,6 +67,7 @@ FocusScope {
   function commit(key, value) {
     if (key === "launchDate") view.store.setLaunchDate(value)
     else if (key === "tempUnit") view.store.setTempUnit(value)
+    else if (key === "textStyle") view.store.setTextStyle(value)
     else if (key === "noiseReduction") view.store.setNoiseReduction(value === "true")
     else if (key === "mirrorVideo") view.store.setMirrorVideo(value === "true")
     else if (key === "dimBackground") view.store.setDimBackground(value === "true")

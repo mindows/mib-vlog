@@ -34,6 +34,16 @@ Item {
 
   readonly property real hudScale: width / 720
 
+  // settings → Text style: "soft", "shadow", "outline", or "plate".
+  readonly property string textStyle: hud.store.textStyle || "soft"
+
+  // The faintest captions (host and place at 0.45) are near-white on a
+  // white wall whatever sits behind them, so every style but the soft
+  // halo lifts each mark's opacity toward full.
+  function ink(opacity) {
+    return hud.textStyle === "soft" ? opacity : Math.min(1, opacity + 0.3)
+  }
+
   // The current temperature in the chosen scale, one decimal like the rest
   // of the readouts, and where it sits on that scale's gauge: -10..50 °C,
   // 0..130 °F.
@@ -64,7 +74,7 @@ Item {
   component HudCaption: Text {
     textFormat: Text.PlainText
     color: hud.hudColor
-    opacity: 0.72
+    opacity: hud.ink(0.72)
     font.family: hud.hudFont
     font.pixelSize: Math.round(12 * hud.hudScale)
     font.letterSpacing: Math.round(2 * hud.hudScale)
@@ -74,7 +84,7 @@ Item {
   component HudReadout: Text {
     textFormat: Text.PlainText
     color: hud.hudColor
-    opacity: 0.9
+    opacity: hud.ink(0.9)
     font.family: hud.hudFont
     font.pixelSize: Math.round(24 * hud.hudScale)
     font.letterSpacing: Math.round(1 * hud.hudScale)
@@ -195,7 +205,7 @@ Item {
           - (ringSymbol.baselineOffset + symbolInk.tightBoundingRect.y + symbolInk.tightBoundingRect.height / 2))
         text: ringBlock.symbol
         color: hud.hudColor
-        opacity: 0.9
+        opacity: hud.ink(0.9)
         font.family: hud.hudFont
         font.pixelSize: Math.round(ring.width * 0.5)
       }
@@ -244,24 +254,80 @@ Item {
     }
   }
 
-  // Every HUD mark lives in one layer so a single soft shadow can sit
-  // behind all of it: a dark halo that keeps the text legible over a
-  // bright frame without boxing anything in.
+  // Plate: a dark plate behind each group of marks, like the SOL cell
+  // but for the whole block.
+  component Plate: Rectangle {
+    property Item target
+    readonly property real pad: Math.round(8 * hud.hudScale)
+    visible: hud.textStyle === "plate" && target.visible
+    x: target.x - pad
+    y: target.y - pad
+    width: target.width + 2 * pad
+    height: target.height + 2 * pad
+    radius: Math.round(4 * hud.hudScale)
+    color: Qt.rgba(0, 0, 0, 0.38)
+  }
+
+  Plate { target: header }
+  Plate { target: stack }
+  Plate { target: clockColumn }
+  Plate { target: footer }
+
+  // Outline: hard black copies of the HUD nudged out in eight directions,
+  // with the HUD itself drawn over them, so every mark — rings and rules
+  // too — gets a solid edge. It scales with the HUD: 1px on the card, 3px
+  // in a 1280px take.
+  Repeater {
+    model: hud.textStyle === "outline" ? 8 : 0
+
+    MultiEffect {
+      required property int index
+      readonly property real distance: Math.max(1, Math.round(1.5 * hud.hudScale))
+      readonly property real angle: index * Math.PI / 4
+
+      anchors.fill: parent
+      source: hudLayer
+      shadowEnabled: true
+      shadowColor: "black"
+      shadowOpacity: 0.85
+      shadowBlur: 0
+      blurMax: 1
+      shadowHorizontalOffset: Math.round(distance * Math.cos(angle))
+      shadowVerticalOffset: Math.round(distance * Math.sin(angle))
+    }
+  }
+
+  // The soft halo and the shadow: a dark copy of every mark behind it.
+  // Soft is wide and faint and keeps the HUD airy; shadow is tight, full
+  // strength, and set down and right.
+  Component {
+    id: halo
+
+    MultiEffect {
+      readonly property bool soft: hud.textStyle !== "shadow"
+
+      shadowEnabled: true
+      shadowColor: "black"
+      shadowOpacity: soft ? 0.9 : 1
+      shadowBlur: soft ? 0.5 : 0.15
+      // In pixels, so it scales with the HUD: a 1280px export keeps the
+      // same halo as the 500px card.
+      blurMax: soft
+        ? Math.max(2, Math.min(64, Math.round(11.5 * hud.hudScale)))
+        : Math.max(2, Math.round(3 * hud.hudScale))
+      shadowHorizontalOffset: soft ? 0 : Math.round(1.5 * hud.hudScale)
+      shadowVerticalOffset: soft ? 0 : Math.round(1.5 * hud.hudScale)
+    }
+  }
+
+  // Every HUD mark lives in one layer, so a style's shadow or outline sits
+  // behind all of it at once.
   Item {
     id: hudLayer
     anchors.fill: parent
     layer.enabled: true
-    layer.effect: MultiEffect {
-      shadowEnabled: true
-      shadowColor: "black"
-      shadowOpacity: 0.9
-      shadowBlur: 0.5
-      // In pixels, so it scales with the HUD: a 1280px export keeps the
-      // same halo as the 500px card.
-      blurMax: Math.max(2, Math.min(64, Math.round(11.5 * hud.hudScale)))
-      shadowHorizontalOffset: 0
-      shadowVerticalOffset: 0
-    }
+    // Outline draws from the plain layer; plate needs no shadow behind it.
+    layer.effect: hud.textStyle === "soft" || hud.textStyle === "shadow" ? halo : null
 
     // ------------------------------------------------------ header (left)
 
@@ -273,7 +339,7 @@ Item {
 
       HudCaption {
         text: hud.store.missionLabel
-        opacity: 0.85
+        opacity: hud.ink(0.85)
         font.pixelSize: Math.round(15 * hud.hudScale)
       }
 
@@ -322,13 +388,14 @@ Item {
         // they sit beside.
         topPadding: Math.round(5 * hud.hudScale)
         text: "Environment"
-        opacity: 0.6
+        opacity: hud.ink(0.6)
       }
     }
 
     // ----------------------------------------------------- header (right)
 
     Column {
+      id: clockColumn
       anchors { right: parent.right; rightMargin: Math.round(26 * hud.hudScale) }
       y: Math.round(18 * hud.hudScale)
       spacing: Math.round(7 * hud.hudScale)
@@ -336,13 +403,13 @@ Item {
       HudCaption {
         anchors.right: parent.right
         text: hud.store.timeLabel + " " + hud.store.clock
-        opacity: 0.6
+        opacity: hud.ink(0.6)
       }
 
       HudCaption {
         anchors.right: parent.right
         text: hud.store.logLabel + " #" + hud.paddedEntry
-        opacity: 0.75
+        opacity: hud.ink(0.75)
       }
     }
 
@@ -373,7 +440,7 @@ Item {
           textFormat: Text.PlainText
           text: hud.store.locationLabel
           color: hud.hudColor
-          opacity: 0.85
+          opacity: hud.ink(0.85)
           font.family: hud.hudFont
           font.pixelSize: Math.round(28 * hud.hudScale)
           font.letterSpacing: Math.round(4 * hud.hudScale)
@@ -382,7 +449,7 @@ Item {
 
       HudCaption {
         text: [hud.store.hostname, hud.store.locationName].filter(function(part) { return !!part }).join(" | ")
-        opacity: 0.45
+        opacity: hud.ink(0.45)
         font.pixelSize: Math.round(11 * hud.hudScale)
       }
     }
@@ -433,7 +500,7 @@ Item {
           HudCaption {
             anchors.verticalCenter: parent.verticalCenter
             text: hud.recording.active ? "Recording" : (hud.recording.error ? "Error" : "Standby")
-            opacity: hud.recording.active ? 0.95 : 0.7
+            opacity: hud.recording.active ? 0.95 : hud.ink(0.7)
           }
         }
 
@@ -452,7 +519,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         text: "󰒓"
         color: hud.hudColor
-        opacity: gearMouse.containsMouse ? 1.0 : 0.7
+        opacity: gearMouse.containsMouse ? 1.0 : hud.ink(0.7)
         font.family: hud.hudFont
         font.pixelSize: Math.round(16 * hud.hudScale)
 
