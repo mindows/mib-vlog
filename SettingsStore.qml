@@ -69,8 +69,9 @@ Item {
 
   // How the HUD's marks hold up against a bright picture: "soft" (a faint
   // halo), "shadow", "outline", or "plate" (dark plates behind each group).
-  readonly property string textStyle: ["shadow", "outline", "plate"].indexOf(data.textStyle) >= 0
-    ? data.textStyle : "soft"
+  // The first is the default, and anything not listed reads as it.
+  readonly property var textStyles: ["soft", "shadow", "outline", "plate"]
+  readonly property string textStyle: store.validTextStyle(data.textStyle)
 
   // "C" or "F", for the TEMP readout.
   readonly property string tempUnit: data.tempUnit === "F" ? "F" : "C"
@@ -196,8 +197,12 @@ Item {
     store.save()
   }
 
+  function validTextStyle(style) {
+    return store.textStyles.indexOf(style) >= 0 ? style : store.textStyles[0]
+  }
+
   function setTextStyle(style) {
-    var next = ["shadow", "outline", "plate"].indexOf(style) >= 0 ? style : "soft"
+    var next = store.validTextStyle(style)
     if (data.textStyle === next) return
     data.textStyle = next
     store.save()

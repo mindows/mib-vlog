@@ -52,8 +52,9 @@ FocusScope {
     { key: "mirrorVideo", label: "Mirror video",
       choices: [{ value: "true", text: "On" }, { value: "false", text: "Off" }] },
     { key: "textStyle", label: "Text style",
-      choices: [{ value: "soft", text: "Soft" }, { value: "shadow", text: "Shadow" },
-        { value: "outline", text: "Outline" }, { value: "plate", text: "Plate" }] },
+      choices: view.store.textStyles.map(function(style) {
+        return { value: style, text: style.charAt(0).toUpperCase() + style.slice(1) }
+      }) },
     { key: "dimBackground", label: "Dim background",
       choices: [{ value: "true", text: "On" }, { value: "false", text: "Off" }] },
     { key: "tapToRecord", label: "Tap to record",
