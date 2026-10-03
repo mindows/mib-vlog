@@ -52,12 +52,13 @@ burned into a take.
 | Style | What it does |
 |---|---|
 | Soft | a wide, faint dark halo (the default, and the original look); fine over a dim room, washes out over a white wall |
-| Shadow | a tight dark shadow set down and to the right; much more legible, closest to the original look |
+| Shadow | a tight dark shadow set down and to the right; much more legible, and keeps the HUD's open, unboxed look |
 | Outline | a solid dark edge around every mark, rings included; the most legible, and the heaviest |
-| Plate | a translucent dark plate behind each group of readouts |
+| Plate | a translucent dark plate behind each group of readouts, plus the soft halo |
 
 Every style but Soft also brings the faint captions (WEATHER, TEMP, AQI,
-the host and place line) up toward full brightness.
+the host and place line) up toward full brightness, keeping their order
+from faintest to brightest.
 
 ### Location
 
