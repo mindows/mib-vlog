@@ -39,7 +39,9 @@ Item {
 
   // The faintest captions (host and place at 0.45) are near-white on a
   // white wall whatever sits behind them, so every style but the soft
-  // halo lifts each mark's opacity toward full. It keeps their order:
+  // halo lifts the text's opacity toward full. (The edge rules, ring
+  // tracks and standby dot keep their faintness: it is what sets them
+  // apart from the readouts and the lit arcs.) It keeps their order:
   // 0.45 becomes 0.75 and 1 stays 1, so a hovered gear still brightens and
   // RECORDING still outshines STANDBY.
   function ink(opacity) {
@@ -259,12 +261,15 @@ Item {
   // Plate: a dark plate behind each group of marks, like the SOL cell
   // but for the whole block. Groups stacked close together (`previous`,
   // `next`) get plates that meet halfway between them, a hairline apart,
-  // rather than overlapping into a darker band.
+  // rather than overlapping into a darker band. The side padding is
+  // narrower than the top and bottom so a plate stays inside the edge
+  // rules, which sit 9 units out from the text.
   component Plate: Rectangle {
     property Item target
     property Item previous: null
     property Item next: null
     readonly property real pad: Math.round(8 * hud.hudScale)
+    readonly property real sidePad: Math.round(6 * hud.hudScale)
     readonly property real gap: Math.max(1, Math.round(2 * hud.hudScale))
     readonly property real targetBottom: target.y + target.height
     readonly property real plateTop: previous
@@ -275,9 +280,9 @@ Item {
       : targetBottom + pad
 
     visible: hud.textStyle === "plate" && target.visible
-    x: target.x - pad
+    x: target.x - sidePad
     y: Math.round(plateTop)
-    width: target.width + 2 * pad
+    width: target.width + 2 * sidePad
     height: Math.round(plateBottom) - y
     radius: Math.round(4 * hud.hudScale)
     color: Qt.rgba(0, 0, 0, 0.38)
