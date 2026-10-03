@@ -67,6 +67,11 @@ Item {
   // them along.
   readonly property bool locationMetadata: data.locationMetadata
 
+  // How the HUD's marks hold up against a bright picture: "soft" (a faint
+  // halo), "shadow", "outline", or "plate" (dark plates behind each group).
+  readonly property string textStyle: ["shadow", "outline", "plate"].indexOf(data.textStyle) >= 0
+    ? data.textStyle : "soft"
+
   // "C" or "F", for the TEMP readout.
   readonly property string tempUnit: data.tempUnit === "F" ? "F" : "C"
 
@@ -191,6 +196,13 @@ Item {
     store.save()
   }
 
+  function setTextStyle(style) {
+    var next = ["shadow", "outline", "plate"].indexOf(style) >= 0 ? style : "soft"
+    if (data.textStyle === next) return
+    data.textStyle = next
+    store.save()
+  }
+
   function save() {
     file.writeAdapter()
   }
@@ -260,6 +272,7 @@ Item {
       property real latitude: 0
       property real longitude: 0
       property string tempUnit: "C"
+      property string textStyle: "soft"
       property bool noiseReduction: true
       property bool mirrorVideo: true
       property bool dimBackground: true

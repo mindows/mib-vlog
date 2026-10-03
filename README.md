@@ -43,6 +43,22 @@ The camera is only active while the panel is open, so closing it releases
 | `host \| location` | this machine's hostname and the weather location |
 | `WATNEY #000` | the log index: takes saved so far this sol, starting over at 000 each new sol |
 
+### Text style
+
+Settings → **Text style** sets how the HUD holds up over a bright picture,
+such as a white wall behind you. It applies to the card and to the HUD
+burned into a take.
+
+| Style | What it does |
+|---|---|
+| Soft | a wide, faint dark halo (the default, and the original look); fine over a dim room, washes out over a white wall |
+| Shadow | a tight dark shadow set down and to the right; much more legible, closest to the original look |
+| Outline | a solid dark edge around every mark, rings included; the most legible, and the heaviest |
+| Plate | a translucent dark plate behind each group of readouts |
+
+Every style but Soft also brings the faint captions (WEATHER, TEMP, AQI,
+the host and place line) up toward full brightness.
+
 ### Location
 
 The first open guesses where you are: nearby Wi-Fi access points (BSSIDs and
