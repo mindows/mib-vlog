@@ -198,16 +198,17 @@ FocusScope {
 
             readonly property string current: row.isChoice ? String(view.store[row.modelData.key]) : ""
 
-            function step() {
+            // Moves `by` options along (-1 back, 1 on), wrapping at the ends.
+            function step(by) {
               var options = row.modelData.choices
               var index = 0
               for (var i = 0; i < options.length; i++) if (options[i].value === choice.current) index = i
-              view.commit(row.modelData.key, options[(index + 1) % options.length].value)
+              view.commit(row.modelData.key, options[(index + by + options.length) % options.length].value)
             }
 
-            Keys.onSpacePressed: choice.step()
-            Keys.onLeftPressed: choice.step()
-            Keys.onRightPressed: choice.step()
+            Keys.onSpacePressed: choice.step(1)
+            Keys.onLeftPressed: choice.step(-1)
+            Keys.onRightPressed: choice.step(1)
 
             Repeater {
               model: row.isChoice ? row.modelData.choices : []
