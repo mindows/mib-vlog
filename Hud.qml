@@ -279,7 +279,7 @@ Item {
       ? Math.min(targetBottom + pad, (targetBottom + next.y - gap) / 2)
       : targetBottom + pad
 
-    visible: hud.textStyle === "plate" && target.visible
+    visible: target.visible
     x: target.x - sidePad
     y: Math.round(plateTop)
     width: target.width + 2 * sidePad
@@ -364,6 +364,42 @@ Item {
         : Math.max(2, Math.round(3 * hud.hudScale))
       shadowHorizontalOffset: soft ? 0 : Math.round(1.5 * hud.hudScale)
       shadowVerticalOffset: soft ? 0 : Math.round(1.5 * hud.hudScale)
+    }
+  }
+
+  // The record dot while a take runs. It blinks, so it sits outside
+  // hudLayer: inside, every frame of the blink would redraw the whole layer
+  // and its shadow or outline. It lands on the layer's own dot, left empty
+  // meanwhile, and sits beneath the layer so its halo stays behind the
+  // RECORDING caption. Under Outline it has a dark ring of the outline's
+  // width instead of a halo.
+  Item {
+    id: liveDot
+    readonly property real edge: hud.textStyle === "outline"
+      ? Math.max(1, Math.round(1.5 * hud.hudScale)) : 0
+
+    visible: hud.controls && hud.recording.active
+    x: recordMarker.x + recordButton.x + recordRow.x + recordDot.x - edge
+    y: recordMarker.y + recordButton.y + recordRow.y + recordDot.y - edge
+    width: recordDot.width + 2 * edge
+    height: recordDot.height + 2 * edge
+    opacity: recordButton.blink
+    layer.enabled: edge === 0
+    layer.effect: halo
+
+    Rectangle {
+      anchors.fill: parent
+      visible: liveDot.edge > 0
+      radius: width / 2
+      color: Qt.rgba(0, 0, 0, 0.85)
+    }
+
+    Rectangle {
+      anchors.centerIn: parent
+      width: recordDot.width
+      height: recordDot.height
+      radius: recordDot.radius
+      color: hud.recordColor
     }
   }
 
@@ -537,7 +573,7 @@ Item {
           spacing: Math.round(7 * hud.hudScale)
 
           // At standby the dot is drawn here; while a take runs it is
-          // left empty for the blinking dot drawn over hudLayer (below).
+          // left empty for the blinking liveDot beneath hudLayer.
           Rectangle {
             id: recordDot
             anchors.verticalCenter: parent.verticalCenter
@@ -601,23 +637,6 @@ Item {
       y: header.y
       height: footer.y + footer.height - header.y
     }
-  }
-
-  // The record dot while a take runs. It blinks, so it sits outside
-  // hudLayer: inside, every frame of the blink would redraw the whole layer
-  // and its shadow or outline. It lands on the layer's own dot, left empty
-  // meanwhile, and carries the halo itself.
-  Rectangle {
-    visible: hud.controls && hud.recording.active
-    x: recordMarker.x + recordButton.x + recordRow.x + recordDot.x
-    y: recordMarker.y + recordButton.y + recordRow.y + recordDot.y
-    width: recordDot.width
-    height: recordDot.height
-    radius: recordDot.radius
-    color: hud.recordColor
-    opacity: recordButton.blink
-    layer.enabled: true
-    layer.effect: halo
   }
 
   Rectangle {

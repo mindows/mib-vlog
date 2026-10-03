@@ -57,8 +57,8 @@ burned into a take.
 | Plate | a translucent dark plate behind each group of readouts, plus the soft halo |
 
 Every style but Soft also brings the HUD's text up toward full
-brightness, the faint captions (WEATHER, TEMP, AQI, the host and place
-line) most, keeping its order from faintest to brightest.
+brightness, the faintest (such as the host and place line) the most,
+keeping its order from faintest to brightest.
 
 ### Location
 
