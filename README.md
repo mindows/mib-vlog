@@ -56,9 +56,9 @@ burned into a take.
 | Outline | a solid dark edge around every mark, rings included; the most legible, and the heaviest |
 | Plate | a translucent dark plate behind each group of readouts, plus the soft halo |
 
-Every style but Soft also brings the faint captions (WEATHER, TEMP, AQI,
-the host and place line) up toward full brightness, keeping their order
-from faintest to brightest.
+Every style but Soft also brings the HUD's text up toward full
+brightness, the faint captions (WEATHER, TEMP, AQI, the host and place
+line) most, keeping its order from faintest to brightest.
 
 ### Location
 
