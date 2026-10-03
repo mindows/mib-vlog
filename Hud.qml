@@ -35,7 +35,7 @@ Item {
   readonly property real hudScale: width / 720
 
   // settings → Text style: "soft", "shadow", "outline", or "plate".
-  readonly property string textStyle: hud.store.textStyle || "soft"
+  readonly property string textStyle: hud.store.textStyle
 
   // The faintest captions (host and place at 0.45) are near-white on a
   // white wall whatever sits behind them, so every style but the soft
@@ -288,11 +288,29 @@ Item {
     color: Qt.rgba(0, 0, 0, 0.38)
   }
 
-  Plate { target: header; next: stack }
-  Plate { target: stack; previous: header; next: footer }
-  Plate { target: footer; previous: stack }
-  Plate { target: clockColumn }
-  Plate { target: recordMarker }
+  // Every group that gets a plate, as columns read top to bottom: within
+  // a column, each plate meets its neighbours halfway.
+  readonly property var plateColumns: [[header, stack, footer], [clockColumn], [recordMarker]]
+
+  Repeater {
+    model: hud.textStyle === "plate" ? hud.plateColumns : []
+
+    Repeater {
+      id: plateColumn
+      required property var modelData
+
+      model: plateColumn.modelData
+
+      Plate {
+        required property var modelData
+        required property int index
+
+        target: modelData
+        previous: plateColumn.modelData[index - 1] || null
+        next: plateColumn.modelData[index + 1] || null
+      }
+    }
+  }
 
   // Outline: one black silhouette of the HUD, laid down eight times a
   // short step out in each direction, with the HUD itself drawn once over
@@ -508,7 +526,7 @@ Item {
         property real blink: 1.0
 
         SequentialAnimation on blink {
-          running: hud.recording.active
+          running: hud.recording.active && hud.controls
           loops: Animation.Infinite
           NumberAnimation { to: 0.15; duration: 900; easing.type: Easing.InOutSine }
           NumberAnimation { to: 1.0; duration: 900; easing.type: Easing.InOutSine }
@@ -518,13 +536,16 @@ Item {
           id: recordRow
           spacing: Math.round(7 * hud.hudScale)
 
+          // At standby the dot is drawn here; while a take runs it is
+          // left empty for the blinking dot drawn over hudLayer (below).
           Rectangle {
+            id: recordDot
             anchors.verticalCenter: parent.verticalCenter
             width: Math.round(11 * hud.hudScale)
             height: width
             radius: width / 2
             color: hud.recordColor
-            opacity: hud.recording.active ? recordButton.blink : 0.35
+            opacity: hud.recording.active ? 0 : 0.35
           }
 
           HudCaption {
@@ -580,6 +601,23 @@ Item {
       y: header.y
       height: footer.y + footer.height - header.y
     }
+  }
+
+  // The record dot while a take runs. It blinks, so it sits outside
+  // hudLayer: inside, every frame of the blink would redraw the whole layer
+  // and its shadow or outline. It lands on the layer's own dot, left empty
+  // meanwhile, and carries the halo itself.
+  Rectangle {
+    visible: hud.controls && hud.recording.active
+    x: recordMarker.x + recordButton.x + recordRow.x + recordDot.x
+    y: recordMarker.y + recordButton.y + recordRow.y + recordDot.y
+    width: recordDot.width
+    height: recordDot.height
+    radius: recordDot.radius
+    color: hud.recordColor
+    opacity: recordButton.blink
+    layer.enabled: true
+    layer.effect: halo
   }
 
   Rectangle {
